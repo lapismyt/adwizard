@@ -99,6 +99,9 @@ async def start_command(message: Message):
 
 @dp.message(Command('clear'))
 async def clear_command(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
     await db.clear_chat(message.from_user.id)
     await message.answer('Чат очищен')
 
@@ -141,7 +144,7 @@ async def image_command(message: Message):
     QUEUED_USERS.remove(message.from_user.id)
     await wait.delete()
 
-@dp.callback_query(F.data.startswith('settings'))
+@dp.callback_query(F.data == 'settings')
 async def settings_callback(callback: CallbackQuery):
     settings = await db.get_settings(int(callback.from_user.id))
     scenario = await db.get_scenario(settings['scenario'])
@@ -162,7 +165,7 @@ async def topup_callback(callback: CallbackQuery):
     prices = [LabeledPrice(label='Оплатить звёздами', amount=int(callback.data.split('_')[1]))]
     await bot.send_invoice(callback.from_user.id, 'Пополнение баланса', 'Покупка кредитов для использования ИИ бота Adwizard', 'invoice', 'XTR', prices)
 
-@dp.callback_query(F.data.startswith('topup'))
+@dp.callback_query(F.data == 'topup')
 async def topup_callback(callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -187,7 +190,7 @@ async def successful_payment(message: Message):
     await db.increase_balance(message.from_user.id, amount)
     await message.answer(f'Платеж прошел успешно! Вы пополнили баланс на {amount} кредитов звёздами.')
 
-@dp.callback_query(F.data.startswith('start'))
+@dp.callback_query(F.data == 'start')
 async def start_callback(callback: CallbackQuery):
     await callback.message.edit_text(text='Главное меню', reply_markup=InlineKeyboardMarkup(
         inline_keyboard=[
@@ -210,7 +213,7 @@ async def model_callback(callback: CallbackQuery, state: FSMContext):
     await db.change_model(callback.from_user.id, model)
     await callback.answer(f'Модель установлена: {model}')
 
-@dp.callback_query(F.data.startswith('model'))
+@dp.callback_query(F.data == 'model')
 async def model_callback(callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -235,13 +238,12 @@ async def vision_model_callback(callback: CallbackQuery):
     await db.change_vision_model(callback.from_user.id, vision_model)
     await callback.answer(f'Vision-модель установлена: {vision_model}')
 
-@dp.callback_query(F.data.startswith('vision_model'))
+@dp.callback_query(F.data == 'vision_model')
 async def vision_model_callback(callback: CallbackQuery):
     vision_model_buttons = [
         [InlineKeyboardButton(text=model, callback_data=f'vision_model_{model}')] for model in MODELS['vision']
     ]
     vision_model_buttons.append([InlineKeyboardButton(text=f'<- Назад', callback_data=f'settings')])
-    
     keyboard = InlineKeyboardMarkup(inline_keyboard=vision_model_buttons)
     await callback.message.edit_text('Выберите vision-модель', reply_markup=keyboard)
 
@@ -263,7 +265,7 @@ async def model_choose_callback(message: Message, state: FSMContext):
     await message.answer(f'Модель установлена: {model}')
     await state.clear()
 
-@dp.callback_query(F.data.startswith('temperature'))
+@dp.callback_query(F.data == 'temperature')
 async def temperature_callback(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Выберите температуру (0-2):')
     await state.set_state(Settings.temperature)
@@ -278,7 +280,7 @@ async def temperature_choose_callback(message: Message, state: FSMContext):
     await message.answer(f'Температура установлена: {temperature}')
     await state.clear()
 
-@dp.callback_query(F.data.startswith('max_words'))
+@dp.callback_query(F.data == 'max_words')
 async def max_words_callback(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Выберите максимальное количество слов (10-10000):')
     await state.set_state(Settings.max_words)
@@ -293,7 +295,7 @@ async def max_words_choose_callback(message: Message, state: FSMContext):
     await message.answer(f'Максимальное количество слов установлено: {max_words}')
     await state.clear()
 
-@dp.callback_query(F.data.startswith('scenario'))
+@dp.callback_query(F.data == 'scenario')
 async def scenario_callback(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Выберите сценарий:')
     await state.set_state(Settings.scenario)
@@ -310,15 +312,15 @@ async def scenario_choose_callback(message: Message, state: FSMContext):
     await message.answer(f'Сценарий установлен: {scenario["scenario_name"]}\nЧтобы он начал работать, исползуйте /clear.')
     await state.clear()
 
-@dp.callback_query(F.data.startswith('clear'))
+@dp.callback_query(F.data == 'clear')
 async def clear_callback(callback: CallbackQuery):
     if callback.from_user.id in QUEUED_USERS:
-        await callback.message.edit_text('Сначала дождитесь выполнения запроса.')
+        await callback.answer('Сначала дождитесь выполнения запроса.')
         return None
     await db.clear_chat(callback.from_user.id)
-    await callback.message.edit_text('Чат очищен')
+    await callback.answer('Чат очищен')
 
-@dp.callback_query(F.data.startswith('guide'))
+@dp.callback_query(F.data == 'guide')
 async def guide_callback(callback: CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -327,7 +329,7 @@ async def guide_callback(callback: CallbackQuery):
     )
     await callback.message.edit_text(f'Руководство:\n{GUIDE}', reply_markup=keyboard)
 
-@dp.callback_query(F.data.startswith('make_scenario'))
+@dp.callback_query(F.data == 'make_scenario')
 async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Введите название сценария:')
     await state.set_state(MakeScenario.scenario_name)
@@ -358,7 +360,7 @@ async def make_scenario_description_callback(message: Message, state: FSMContext
     )
     await message.answer('Продолжите описание или нажмите "Готово":', reply_markup=keyboard)
 
-@dp.callback_query(F.data.startswith('scenario_descr_done'))
+@dp.callback_query(F.data == 'scenario_descr_done')
 async def make_scenario_example_dialogues_callback(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text('Введите примеры диалогов:')
     await state.set_state(MakeScenario.example_dialogues)
@@ -378,7 +380,7 @@ async def make_scenario_example_dialogues_callback(message: Message, state: FSMC
     )
     await message.answer('Продолжите примеры диалогов или нажмите "Готово":', reply_markup=keyboard)
 
-@dp.callback_query(F.data.startswith('scenario_dialogues_done'))
+@dp.callback_query(F.data == 'scenario_dialogues_done')
 async def make_scenario_example_dialogues_callback(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     scenario_name = data.get('scenario_name')
