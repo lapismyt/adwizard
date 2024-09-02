@@ -348,7 +348,7 @@ async def make_scenario_name_callback(message: Message, state: FSMContext):
 @dp.message(StateFilter(MakeScenario.scenario_description))
 async def make_scenario_description_callback(message: Message, state: FSMContext):
     state_data = await state.get_data()
-    scenario_description = state_data.get('scenario_description', '') + message.text
+    scenario_description = state_data.get('scenario_description', '') + '\n' + message.text
     await state.update_data(scenario_description=scenario_description)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -366,7 +366,7 @@ async def make_scenario_example_dialogues_callback(callback: CallbackQuery, stat
 @dp.message(StateFilter(MakeScenario.example_dialogues))
 async def make_scenario_example_dialogues_callback(message: Message, state: FSMContext):
     state_data = await state.get_data()
-    example_dialogues = state_data.get('example_dialogues', '') + message.text
+    example_dialogues = state_data.get('example_dialogues', '') + '\n\n' + message.text
     await state.update_data(example_dialogues=example_dialogues)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
