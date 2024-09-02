@@ -388,7 +388,7 @@ async def make_scenario_example_dialogues_callback(callback: CallbackQuery, stat
         return
 
     scenario_id = await db.add_scenario(callback.from_user.id, scenario_name, scenario_description, example_dialogues)
-    await callback.message.answer(f'Сценарий создан:\nНазвание: {scenario_name}\nОписание: {scenario_description}\nПримеры диалогов: {example_dialogues[:100]}...')
+    await callback.message.answer(f'Сценарий создан:\nНазвание: {scenario_name}\nОписание: {scenario_description[:500]}...\nПримеры диалогов: {example_dialogues[:100]}...')
     await state.clear()
 
 @dp.message(Command('restore_balance'))
