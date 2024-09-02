@@ -268,6 +268,7 @@ async def scenario_choose_callback(message: Message, state: FSMContext):
     scenario = await db.get_scenario_by_name(message.from_user.id, scenario)
     if not scenario:
         await message.answer('Такого сценария не существует')
+        await state.clear()
         return None
     await db.change_scenario(message.from_user.id, scenario['id'])
     await message.answer(f'Сценарий установлен: {scenario["scenario_name"]}\nЧтобы он начал работать, используйте /clear.')
@@ -292,7 +293,7 @@ async def make_scenario_name_callback(message: Message, state: FSMContext):
     scenario_name = message.text
     scenario_name = await db.get_scenario_by_name(message.from_user.id, scenario_name)
     if scenario_name:
-        await message.answer('Такой сценарий уже существует')
+        await message.answer('Такой сценарий уже существует.\nВведите название сценария:')
         return None
     await state.update_data(scenario_name=scenario_name)
     await message.answer('Введите описание сценария:')
@@ -312,7 +313,7 @@ async def make_scenario_example_dialogues_callback(message: Message, state: FSMC
     scenario_name = data.get('scenario_name')
     scenario_description = data.get('scenario_description')
     scenario_id = await db.add_scenario(message.from_user.id, scenario_name, scenario_description, example_dialogues)
-    await message.answer(f'Сценарий создан с ID: {scenario_id}')
+    await message.answer(f'Сценарий создан: {scenario_name}')
     await state.clear()
 
 @dp.message(Command('restore_balance'))
