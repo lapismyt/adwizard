@@ -352,6 +352,7 @@ async def get_model_pricing(model_name):
             return model['pricing']
     return None
 
+```python
 @dp.message(F.text)
 async def answer_to_message(message: Message):
     if message.from_user.id in QUEUED_USERS:
@@ -391,7 +392,7 @@ async def answer_to_message(message: Message):
         traceback.print_exc()
         return None
     chat_history.append({"role": "assistant", "content": response.choices[0].message.content})
-    while sum(len(msg['content'].split()) for msg in chat_history) > settings.get('max_words'):
+    while sum(len(part['text'].split()) if isinstance(msg['content'], list) else len(msg['content'].split()) for msg in chat_history) > settings.get('max_words'):
         if chat_history[0]['role'] == 'system':
             chat_history.pop(1)
         else:
