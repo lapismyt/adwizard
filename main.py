@@ -421,7 +421,7 @@ async def image_callback(message: Message):
         return None
     model_pricing = await get_model_pricing(settings.get('vision_model'))
     spent_credits = response.usage.prompt_tokens * model_pricing['prompt'] + response.usage.completion_tokens * model_pricing['completion']
-    await db.decrease_balance(user_id, spent_credits)
+    await db.decrease_balance(user_id, spent_credits + 1.5)
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
     max_length = 4096
