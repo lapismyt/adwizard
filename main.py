@@ -394,9 +394,11 @@ async def answer_to_message(message: Message):
         await message.answer('Ошибка!')
         traceback.print_exc()
         return None
-    await bot.send_message(ADMIN_ID, str(response.choices[0].message.content))
     chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
-    while sum(len(part['text'].split()) if isinstance(msg['content'], list) else len(msg['content'].split()) for msg in chat_history) > settings.get('max_words'):
+    while sum(
+        len(part['text'].split()) if isinstance(msg['content'], list) else len(msg['content'].split())
+        for msg in chat_history for part in (msg['content'] if isinstance(msg['content'], list) else [msg])
+    ) > settings.get('max_words'):
         if chat_history[0]['role'] == 'system':
             chat_history.pop(1)
         else:
