@@ -446,7 +446,7 @@ async def make_scenario_description_callback(message: Message, state: FSMContext
 @dp.callback_query(F.data == 'scenario_descr_done')
 async def make_scenario_example_dialogues_callback(callback: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
-    await callback.message.edit_text(f'Название: {state_data.get("scenario_name")}\nОписание: {state_data.get("scenario_description")}\n\nТеперь введите примеры диалогов:')
+    await callback.message.edit_text(f'Название: {state_data.get("scenario_name")}\nОписание: {state_data.get("scenario_description")[:500]}...\n\nТеперь введите примеры диалогов:')
     await state.set_state(MakeScenario.example_dialogues)
 
 @dp.message(StateFilter(MakeScenario.example_dialogues))
