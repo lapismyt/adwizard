@@ -50,6 +50,8 @@ print(f"TEST_BALANCE: {TEST_BALANCE}")
 with open('models.json', 'r') as f:
     MODELS = orjson.loads(f.read())
 
+QUEUED_USERS = []
+
 openai_client = openai.OpenAI(
     api_key=VSEGPT_TOKEN,
     base_url=VSEGPT_URL,
@@ -349,6 +351,10 @@ async def get_model_pricing(model_name):
 
 @dp.message(F.text)
 async def answer_to_message(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    QUEUED_USERS.append(message.from_user.id)
     wait = await message.answer(text='Подождите немного...')
     user_id = message.from_user.id
     settings = await db.get_settings(user_id)
@@ -377,8 +383,9 @@ async def answer_to_message(message: Message):
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     model_pricing = await get_model_pricing(settings.get('model'))
-    spent_credits = response.usage.prompt_tokens * model_pricing['prompt'] + response.usage.completion_tokens * model_pricing['completion']
-    await db.decrease_balance(user_id, spent_credits)
+    spent_credits = float(response.usage.prompt_tokens) * float(model_pricing['prompt']) + float(response.usage.completion_tokens) * float(model_pricing['completion'])
+    await db.decrease_balance(user_id, float(spent_credits))
+    await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
     max_length = 4096
     if len(response_text) > max_length:
@@ -394,9 +401,14 @@ async def answer_to_message(message: Message):
         except Exception as e:
             await message.answer(response_text)
     await wait.delete()
+    QUEUED_USERS.remove(message.from_user.id)
 
 @dp.message(F.content_type == 'photo')
 async def image_callback(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    QUEUED_USERS.append(message.from_user.id)
     wait = await message.answer('Подождите немного...')
     user_id = message.from_user.id
     settings = await db.get_settings(user_id)
@@ -420,8 +432,8 @@ async def image_callback(message: Message):
         traceback.print_exc()
         return None
     model_pricing = await get_model_pricing(settings.get('vision_model'))
-    spent_credits = response.usage.prompt_tokens * model_pricing['prompt'] + response.usage.completion_tokens * model_pricing['completion']
-    await db.decrease_balance(user_id, spent_credits + 1.5)
+    spent_credits = float(response.usage.prompt_tokens) * float(model_pricing['prompt']) + float(response.usage.completion_tokens) * float(model_pricing['completion'])
+    await db.decrease_balance(user_id, float(spent_credits) + 1.5)
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
     max_length = 4096
@@ -439,6 +451,7 @@ async def image_callback(message: Message):
     chat_history.append({'role': "assistant", 'content': response.choices[0].message.content})
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     await wait.delete()
+    QUEUED_USERS.remove(message.from_user.id)
 
 async def main():
     await db.create_tables()
