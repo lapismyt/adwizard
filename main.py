@@ -276,7 +276,7 @@ async def scenario_choose_callback(message: Message, state: FSMContext):
         await state.clear()
         return None
     await db.change_scenario(message.from_user.id, scenario['id'])
-    await message.answer(f'Сценарий установлен: {scenario["scenario_name"]}\nЧтобы он начал работать, используйте /clear.')
+    await message.answer(f'Сценарий установлен: {scenario["scenario_name"]}\nЧтобы он начал работать, исползуйте /clear.')
     await state.clear()
 
 @dp.callback_query(F.data.startswith('clear'))
@@ -367,12 +367,25 @@ async def answer_to_message(message: Message):
         return None
     chat_history = user_data['chat_history']
     chat_history.append({"role": "user", "content": message.text})
+    
     try:
-        response = openai_client.chat.completions.create(
-            model=settings.get('model'),
-            messages=chat_history,
-            temperature=settings.get('temperature')
+        contains_image = any(
+            isinstance(msg['content'], list) and any(
+                part['type'] == 'image_url' for part in msg['content']
+            ) for msg in chat_history
         )
+        if contains_image:
+            response = openai_client.chat.completions.create(
+                model=settings.get('vision_model'),
+                messages=chat_history,
+                temperature=settings.get('temperature')
+            )
+        else:
+            response = openai_client.chat.completions.create(
+                model=settings.get('model'),
+                messages=chat_history,
+                temperature=settings.get('temperature')
+            )
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
@@ -390,9 +403,6 @@ async def answer_to_message(message: Message):
     await db.decrease_balance(user_id, float(spent_credits))
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
-    if type(response_text) is list:
-        print(response_text) # debug
-        response_text = response_text[0]['text']
     max_length = 4096
     if len(response_text) > max_length:
         for i in range(0, len(response_text), max_length):
@@ -427,7 +437,7 @@ async def image_callback(message: Message):
     try:
         response = openai_client.chat.completions.create(
             model=settings.get('vision_model'),
-            messages=[{'role': 'user', 'content': [
+            messages=user_data['chat_history'] + [{'role': 'user', 'content': [
                 {'type': 'text', 'text': message.caption},
                 {'type': 'image_url', 'image_url': {'url': image_url}}
             ]}],
