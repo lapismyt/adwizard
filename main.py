@@ -418,10 +418,7 @@ async def answer_to_message(message: Message):
     if len(response_text) > max_length:
         for i in range(0, len(response_text), max_length):
             part = response_text[i:i + max_length]
-            try:
-                await message.answer(part, parse_mode='markdown')
-            except Exception as e:
-                await message.answer(part)
+            await message.answer(part)
     else:
         try:
             await message.answer(response_text, parse_mode='markdown')
