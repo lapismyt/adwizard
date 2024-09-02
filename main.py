@@ -154,7 +154,7 @@ async def cancel_command(message: Message):
     user_messages = [msg for msg in chat_history if msg['role'] != 'system']
     if len(user_messages) > 2:
         chat_history = chat_history[:-2]
-        await db.update_user(message.from_user.id, {'chat_history': chat_history})
+        await db.update_user(message.from_user.id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': user_data['settings']})
         await message.answer('Последний запрос отменен.')
     else:
         await message.answer('Недостаточно сообщений для удаления.')
