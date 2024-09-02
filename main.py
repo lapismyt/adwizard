@@ -396,7 +396,7 @@ async def answer_to_message(message: Message):
         return None
     chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
     while sum(
-        len(part['text'].split()) if isinstance(msg['content'], list) else len(msg['content'].split())
+        len(part['text'].split()) if isinstance(msg['content'], list) and 'text' in part else len(msg['content'].split())
         for msg in chat_history for part in (msg['content'] if isinstance(msg['content'], list) else [msg])
     ) > settings.get('max_words'):
         if chat_history[0]['role'] == 'system':
