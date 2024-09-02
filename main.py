@@ -25,6 +25,10 @@ CHAT_MAIN_MODEL = os.getenv('CHAT_MAIN_MODEL')
 ADMIN_ID = os.getenv('ADMIN_ID')
 CHAT_TEMPERATURE = float(os.getenv('CHAT_TEMPERATURE'))
 CHAT_MAX_WORDS = int(os.getenv('CHAT_MAX_WORDS'))
+ENABLE_OMF = os.getenv('ENABLE_OMF') in ['1', 'TRUE', 'YES']
+DEVELOPER_INFO = os.getenv('DEVELOPER_INFO')
+TERMS_OF_USE = os.getenv('TERMS_OF_USE')
+PRIVACY_POLICY = os.getenv('PRIVACY_POLICY')
 
 # Debugging prints
 print(f"BOT_TOKEN: {BOT_TOKEN}")
@@ -34,6 +38,11 @@ print(f"CHAT_MAIN_MODEL: {CHAT_MAIN_MODEL}")
 print(f"ADMIN_ID: {ADMIN_ID}")
 print(f"CHAT_TEMPERATURE: {CHAT_TEMPERATURE}")
 print(f"CHAT_MAX_WORDS: {CHAT_MAX_WORDS}")
+print(f"ENABLE_OMF: {ENABLE_OMF}")
+print(f"DEVELOPER_INFO: {DEVELOPER_INFO}")
+print(f"TERMS_OF_USE: {TERMS_OF_USE}")
+print(f"PRIVACY_POLICY: {PRIVACY_POLICY}")
+
 
 with open('models.json', 'r') as f:
     MODELS = orjson.loads(f.read())
@@ -83,6 +92,18 @@ async def start_command(message: Message):
 async def clear_command(message: Message):
     await db.clear_chat(message.from_user.id)
     await message.answer('Чат очищен')
+
+@dp.message(Command('developer_info'))
+async def developer_info_command(message: Message):
+    await message.answer(f'Информация о разработчике:\n{DEVELOPER_INFO}')
+
+@dp.message(Command('terms'))
+async def terms_of_use_command(message: Message):
+    await message.answer(f'Условия использования:\n{TERMS_OF_USE}')
+
+@dp.message(Command('privacy_policy'))
+async def privacy_policy_command(message: Message):
+    await message.answer(f'Политика конфиденциальности:\n{PRIVACY_POLICY}')
 
 @dp.callback_query(F.data.startswith('settings'))
 async def settings_callback(callback: CallbackQuery):
@@ -190,8 +211,11 @@ async def vision_model_callback(callback: CallbackQuery):
 @dp.message(StateFilter(Settings.model))
 async def model_choose_callback(message: Message, state: FSMContext):
     model = message.text
+    if model.startswith('OMF') and not ENABLE_OMF:
+        await message.answer(text='OMF модели временно отключены')
+        return None
     if model not in MODELS['recommended']['chat']:
-        await message.answer(text='Тако модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
+        await message.answer(text='Такой модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text='openai/gpt-4o-mini', callback_data='model_cheap')]
             ]
