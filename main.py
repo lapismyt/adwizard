@@ -314,19 +314,47 @@ async def make_scenario_name_callback(message: Message, state: FSMContext):
 
 @dp.message(StateFilter(MakeScenario.scenario_description))
 async def make_scenario_description_callback(message: Message, state: FSMContext):
-    scenario_description = message.text
+    state_data = await state.get_data()
+    if 'scenario_description' in state_data:
+        scenario_description = state_data['scenario_description'] + message.text
+    else:
+        scenario_description = message.text
     await state.update_data(scenario_description=scenario_description)
-    await message.answer('Введите примеры диалогов:')
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='Готово', callback_data='scenario_descr_done')]
+        ]
+    )
+    await message.answer('Продолжите описание или нажмите "Готово":', reply_markup=keyboard)
+
+@dp.callback_query(F.data.startswith('scenario_descr_done'))
+async def make_scenario_example_dialogues_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text('Введите примеры диалогов:')
     await state.set_state(MakeScenario.example_dialogues)
 
 @dp.message(StateFilter(MakeScenario.example_dialogues))
 async def make_scenario_example_dialogues_callback(message: Message, state: FSMContext):
-    example_dialogues = message.text
+    state_data = await state.get_data()
+    if 'example_dialogues' in state_data:
+        example_dialogues = state_data['example_dialogues'] + message.text
+    else:
+        example_dialogues = message.text
+    await state.update_data(example_dialogues=example_dialogues)
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='Готово', callback_data='scenario_dialogues_done')]
+        ]
+    )
+    await message.answer('Продолжите примеры диалогов или нажмите "Готово":', reply_markup=keyboard)
+
+@dp.callback_query(F.data.startswith('scenario_dialogues_done'))
+async def make_scenario_example_dialogues_callback(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     scenario_name = data.get('scenario_name')
     scenario_description = data.get('scenario_description')
-    scenario_id = await db.add_scenario(message.from_user.id, scenario_name, scenario_description, example_dialogues)
-    await message.answer(f'Сценарий создан: {scenario_name}')
+    example_dialogues = data.get('example_dialogues')
+    scenario_id = await db.add_scenario(callback.from_user.id, scenario_name, scenario_description, example_dialogues)
+    await callback.message.answer(f'Сценарий создан: {scenario_name}')
     await state.clear()
 
 @dp.message(Command('restore_balance'))

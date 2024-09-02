@@ -28,7 +28,7 @@ class DB:
                     user_id INTEGER PRIMARY KEY,
                     balance REAL DEFAULT 10,
                     chat_history TEXT DEFAULT '[{"role": "system", "content": "You are a helpful assistant."}]',
-                    settings TEXT DEFAULT '{"model": "openai/gpt-4o", "temperature": 0.5, "max_words": 1000, "voice": "male", "scenario": 0, "vision_model": "vis-openai/gpt-4o"}'
+                    settings TEXT DEFAULT '{"model": "openai/gpt-4o", "temperature": 0.7, "max_words": 2000, "voice": "male", "scenario": 0, "vision_model": "vis-openai/gpt-4o"}'
                 )
             ''')
             await db.execute('''
