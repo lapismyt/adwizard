@@ -123,7 +123,7 @@ async def settings_callback(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith('topup_'))
 async def topup_callback(callback: CallbackQuery):
     prices = [LabeledPrice(label='Оплатить звёздами', amount=int(callback.data.split('_')[1]))]
-    await bot.send_invoice(callback.from_user.id, 'Пополнение баланса', 'Покупка токенов для использования ИИ бота Adwizard', 'invoice', 'XTR', prices)
+    await bot.send_invoice(callback.from_user.id, 'Пополнение баланса', 'Покупка кредитов для использования ИИ бота Adwizard', 'invoice', 'XTR', prices)
 
 @dp.callback_query(F.data.startswith('topup'))
 async def topup_callback(callback: CallbackQuery):
@@ -138,7 +138,7 @@ async def topup_callback(callback: CallbackQuery):
             [InlineKeyboardButton(text='<- Назад', callback_data='start')],
         ]
     )
-    await callback.message.edit_text('Выберите количество токенов для пополнения', reply_markup=keyboard)
+    await callback.message.edit_text('Выберите количество кредитов для пополнения', reply_markup=keyboard)
 
 @dp.pre_checkout_query()
 async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
@@ -148,7 +148,7 @@ async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 async def successful_payment(message: Message):
     amount = message.successful_payment.total_amount
     await db.increase_balance(message.from_user.id, amount)
-    await message.answer(f'Платеж прошел успешно! Вы пополнили баланс на {amount} звёздами.')
+    await message.answer(f'Платеж прошел успешно! Вы пополнили баланс на {amount} кредитов звёздами.')
 
 @dp.callback_query(F.data.startswith('start'))
 async def start_callback(callback: CallbackQuery):
