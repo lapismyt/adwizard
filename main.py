@@ -390,6 +390,9 @@ async def answer_to_message(message: Message):
     await db.decrease_balance(user_id, float(spent_credits))
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
+    if type(response_text) is list:
+        print(response_text) # debug
+        response_text = response_text[0]['text']
     max_length = 4096
     if len(response_text) > max_length:
         for i in range(0, len(response_text), max_length):
