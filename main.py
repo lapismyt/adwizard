@@ -29,6 +29,7 @@ ENABLE_OMF = os.getenv('ENABLE_OMF') in ['1', 'TRUE', 'YES']
 DEVELOPER_INFO = os.getenv('DEVELOPER_INFO')
 TERMS_OF_USE = os.getenv('TERMS_OF_USE')
 PRIVACY_POLICY = os.getenv('PRIVACY_POLICY')
+GUIDE = os.getenv('GUIDE')
 
 # Debugging prints
 print(f"BOT_TOKEN: {BOT_TOKEN}")
@@ -42,7 +43,7 @@ print(f"ENABLE_OMF: {ENABLE_OMF}")
 print(f"DEVELOPER_INFO: {DEVELOPER_INFO}")
 print(f"TERMS_OF_USE: {TERMS_OF_USE}")
 print(f"PRIVACY_POLICY: {PRIVACY_POLICY}")
-
+print(f"GUIDE: {GUIDE}")
 
 with open('models.json', 'r') as f:
     MODELS = orjson.loads(f.read())
@@ -281,7 +282,12 @@ async def clear_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith('guide'))
 async def guide_callback(callback: CallbackQuery):
-    await callback.message.edit_text('Пока что здесь пусто')
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='<- Назад', callback_data='start')]
+        ]
+    )
+    await callback.message.edit_text(f'Руководство:\n{GUIDE}', reply_markup=keyboard)
 
 @dp.callback_query(F.data.startswith('make_scenario'))
 async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
