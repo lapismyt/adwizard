@@ -369,11 +369,15 @@ async def answer_to_message(message: Message):
     chat_history.append({"role": "user", "content": message.text})
     
     try:
-        contains_image = any(
-            isinstance(msg['content'], list) and any(
-                part['type'] == 'image_url' for part in msg['content']
-            ) for msg in chat_history
-        )
+        contains_image = False
+        for msg in chat_history:
+            if type(msg['content']) == list:
+                for cont in msg['content']:
+                    if cont['type'] == 'image_url':
+                        contains_image = True
+                        break
+            if contains_image:
+                break
         if contains_image:
             response = openai_client.chat.completions.create(
                 model=settings.get('vision_model'),
@@ -390,7 +394,8 @@ async def answer_to_message(message: Message):
         await message.answer('Ошибка!')
         traceback.print_exc()
         return None
-    chat_history.append({"role": "assistant", "content": response.choices[0].message.content})
+    await bot.send_message(ADMIN_ID, str(response.choices[0].message.content))
+    chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
     while sum(len(part['text'].split()) if isinstance(msg['content'], list) else len(msg['content'].split()) for msg in chat_history) > settings.get('max_words'):
         if chat_history[0]['role'] == 'system':
             chat_history.pop(1)
