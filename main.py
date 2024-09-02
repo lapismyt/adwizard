@@ -352,7 +352,6 @@ async def get_model_pricing(model_name):
             return model['pricing']
     return None
 
-```python
 @dp.message(F.text)
 async def answer_to_message(message: Message):
     if message.from_user.id in QUEUED_USERS:
