@@ -1,0 +1,235 @@
+{
+    "chat": [
+        "openai/gpt-3.5-turbo",
+        "openai/gpt-4",
+        "openai/gpt-4-turbo",
+        "openai/gpt-4o",
+        "openai/gpt-4o-mini",
+        "openai/gpt-4o-latest",
+        "anthropic/claude-instant-v1",
+        "anthropic/claude-2",
+        "anthropic/claude-3-sonnet",
+        "anthropic/claude-3-haiku",
+        "anthropic/claude-3.5-sonnet",
+        "gryphe/mythomax-L2-13b",
+        "google/gemini-pro",
+        "google/palm-2-chat-bison",
+        "google/gemini-pro-1.5",
+        "google/gemini-flash-1.5",
+        "meta-llama/codellama-34b-instruct",
+        "meta-llama/llama-2-70b-chat",
+        "pygmalionai/mythalion-13b",
+        "mistralai/mistral-7b-instruct",
+        "lizpreciatior/lzlv-70b-fp16-hf",
+        "openchat/openchat-7b",
+        "google/gemma-7b-it",
+        "perplexity/latest-small-online",
+        "perplexity/latest-large-online",
+        "koboldai/psyfighter-13b-2",
+        "phind/phind-codellama-34b",
+        "gryphe/mythomist-7b",
+        "undi95/toppy-m-7b",
+        "teknium/openhermes-2.5-mistral-7b",
+        "mistralai/mixtral-8x7b-instruct",
+        "cognitivecomputations/dolphin-mixtral-8x7b",
+        "nousresearch/nous-hermes-yi-34b",
+        "neversleep/noromaid-mixtral-8x7b-instruct",
+        "mistralai/mistral-tiny",
+        "mistralai/mistral-small",
+        "mistralai/mistral-medium",
+        "recursal/eagle-7b",
+        "mistralai/mistral-large",
+        "nousresearch/nous-hermes-2-mixtral-8x7b-dpo",
+        "sophosympatheia/midnight-rose-70b",
+        "databricks/dbrx-instruct",
+        "mistralai/mixtral-8x22b",
+        "microsoft/wizardlm-2-8x22b",
+        "mistralai/mixtral-8x22b-instruct",
+        "microsoft/wizardlm-2-7b",
+        "meta-llama/llama-3-8b-instruct",
+        "meta-llama/llama-3-70b-instruct",
+        "neversleep/llama-3-lumimaid-8b-large",
+        "perplexity/llama-3-sonar-small-32k-online",
+        "perplexity/llama-3-sonar-large-32k-online",
+        "microsoft/phi-3-medium-128k-instruct",
+        "microsoft/phi-3-mini-128k-instruct",
+        "neversleep/llama-3-lumimaid-70b",
+        "openchat/openchat-8b",
+        "qwen/qwen-2-72b-instruct",
+        "sao10k/euryale-70b",
+        "deepseek/deepseek-coder",
+        "deepseek/deepseek-chat",
+        "01-ai/yi-large",
+        "google/gemma-2-9b-it",
+        "sao10k/l3-stheno-8b",
+        "alpindale/magnum-72b",
+        "google/gemma-2-27b-it",
+        "qwen/qwen-2-7b-instruct",
+        "mistralai/mistral-nemo",
+        "meta-llama/llama-3.1-405b-instruct",
+        "meta-llama/llama-3.1-8b-instruct",
+        "meta-llama/llama-3.1-70b-instruct",
+        "cognitivecomputations/dolphin-llama-3-70b",
+        "nothingiisreal/mn-celeste-12b",
+        "nousresearch/hermes-3-llama-3.1-405b",
+        "sao10k/l3.1-euryale-70b",
+        "aetherwiing/mn-starcannon-12b",
+        "cohere/command-r",
+        "cohere/command-r-plus",
+        "qwen/qwen-14b-chat",
+        "qwen/qwen-32b-chat",
+        "qwen/qwen-72b-chat",
+        "qwen/qwen-110b-chat",
+        "OMF-IlyaGusev/saiga_llama3_8b",
+        "OMF-lightblue/suzume-llama-3-8B-multilingual",
+        "OMF-abacusai/Smaug-Llama-3-70B-Instruct",
+        "OMF-SanjiWatsuki/Kunoichi-DPO-v2-7B",
+        "OMF-DaybreakStorywriterXTenyxChat-70B",
+        "OMF-New-Dawn-Llama-3-70B-32K-v1.0",
+        "OMF-sao10k/l3-8b-lunaris-v1",
+        "OMF-Undi95/MG-FinalMix-72B",
+        "OMF-Tess-v2.5.2-Qwen2-72B",
+        "OMF-abacusai/Smaug-Qwen2-72B-Instruct",
+        "OMF-lmsys/vicuna-13b-v1.5",
+        "OMF-Qwen/Qwen2-Math-72B-Instruct"
+    ],
+    "vision": [
+        "vis-google/gemini-pro-vision",
+        "vis-openai/gpt-4-vision-preview",
+        "vis-anthropic/claude-3-sonnet",
+        "vis-anthropic/claude-3-haiku",
+        "vis-openai/gpt-4-turbo",
+        "vis-google/gemini-pro-1.5",
+        "vis-fireworks/firellava-13b",
+        "vis-openai/gpt-4o",
+        "vis-google/gemini-flash-1.5",
+        "vis-liuhaotian/llava-yi-34b",
+        "vis-anthropic/claude-3.5-sonnet",
+        "vis-openai/gpt-4o-mini"
+    ],
+    "text2img": [
+        "openai/dall-e-2",
+        "openai/dall-e-3",
+        "img-dummy/image",
+        "img-stable/stable-diffusion-xl-1024",
+        "img-playground-v2-5-1024px",
+        "img-flux/schnell",
+        "img-flux/dev",
+        "img-flux/pro"
+    ],
+    "embedding": [
+        "emb-openai/text-embedding-3-small",
+        "emb-openai/text-embedding-3-large"
+    ],
+    "tts": [
+        "tts-openai/tts-1",
+        "tts-openai/tts-1-hd"
+    ],
+    "stt": [
+        "stt-openai/whisper-1"
+    ],
+    "audio": [
+        "tta-stable/stable-audio"
+    ],
+    "recommended": {
+        "chat": {
+            "cheap": "openai/gpt-4o-mini",
+            "strict": "cohere/command-r-plus",
+            "creative": "openai/gpt-4o",
+            "online": "perplexity/latest-large-online",
+            "best": "openai/gpt-4o-latest",
+            "balanced": "anthropic/claude-3.5-sonnet",
+            "russian": "mistralai/mistral-nemo",
+            "roleplay": "microsoft/wizardlm-2-8x22b",
+            "programming": "deepseek/deepseek-coder"
+        },
+        "vision": {
+            "best": "vis-openai/gpt-4o"
+        },
+        "text2img": {
+            "best": "img-flux/dev"
+        },
+        "embedding": {
+            "best": "emb-openai/text-embedding-3-large"
+        },
+        "tts": {
+            "best": "tts-openai/tts-1-hd"
+        },
+        "stt": {
+            "best": "stt-openai/whisper-1"
+        },
+        "audio": {
+            "best": "tta-stable/stable-audio"
+        }
+    },
+    "classes": {
+        "cheap": [
+            "openai/gpt-4o-mini",
+            "google/gemini-flash-1.5",
+            "anthropic/claude-3-haiku",
+            "mistralai/mistral-nemo",
+            "gryphe/mythomax-L2-13b",
+            "openchat/openchat-7b",
+            "cognitivecomputations/dolphin-mixtral-8x7b",
+            "nousresearch/nous-hermes-2-mixtral-8x7b-dpo",
+            "cohere/command-r-08-2024",
+            "google/gemini-pro",
+            "perplexity/llama-3.1-sonar-small-128k-online"
+        ],
+        "hard_prompts": [
+            "openai/gpt-4o-latest",
+            "anthropic/claude-3.5-sonnet",
+            "google/gemini-pro-1.5",
+            "openai/gpt-4o",
+            "meta-llama/llama-3.1-405b-instruct",
+            "google/gemini-flash-1.5",
+            "anthropic/claude-3-opus"
+        ],
+        "creative": [
+            "openai/gpt-4o-latest"
+        ],
+        "online": [
+            "perplexity/latest-large-online"
+        ],
+        "best": [
+            "openai/gpt-4o-latest",
+            "google/gemini-pro-1.5",
+            "openai/gpt-4o",
+            "openai/gpt-4o-mini",
+            "google/gemini-flash-1.5",
+            "anthropic/claude-3.5-sonnet",
+            "meta-llama/llama-3.1-405b-instruct"
+        ],
+        "balanced": [
+            "anthropic/claude-3.5-sonnet"
+        ],
+        "russian": [
+            "google/gemini-pro-1.5",
+            "openai/gpt-4o-latest",
+            "google/gemini-flash-1.5",
+            "openai/gpt-4o",
+            "anthropic/claude-3.5-sonnet",
+            "meta-llama/llama-3.1-405b-instruct",
+            "01-ai/yi-large"
+        ],
+        "roleplay": [
+            "microsoft/wizardlm-2-8x22b",
+            "mistralai/mistral-nemo",
+            "meta-llama/llama-3.1-405b-instruct",
+            "meta-llama/llama-3.1-70b-instruct",
+            "meta-llama/llama-3.1-8b-instruct",
+            "google/gemini-pro-1.5",
+            "openai/gpt-4o-mini"
+        ],
+        "programming": [
+            "openai/gpt-4o-latest",
+            "anthropic/claude-3.5-sonnet",
+            "openai/gpt-4o",
+            "google/gemini-pro-1.5",
+            "openai/gpt-4o-mini",
+            "meta-llama/llama-3.1-405b-instruct",
+            "deepseek/deepseek-coder",
+            "openai/gpt-4-turbo"
+        ]
+    }
+}

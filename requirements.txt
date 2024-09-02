@@ -1,0 +1,6 @@
+aiogram
+aiosqlite
+openai
+aiohttp
+python-dotenv
+orjson
