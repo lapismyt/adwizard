@@ -88,7 +88,7 @@ class DB:
                 for row in rows
             ]
     
-    async def get_scenario_by_name(selfscenario_name: str) -> dict:
+    async def get_scenario_by_name(self, scenario_name: str) -> dict:
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute('SELECT * FROM scenarios WHERE scenario_name = ?', (user_id, scenario_name))
             row = await cursor.fetchone()
