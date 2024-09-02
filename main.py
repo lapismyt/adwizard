@@ -60,7 +60,7 @@ openai_client = openai.OpenAI(
     api_key=VSEGPT_TOKEN,
     base_url=VSEGPT_URL,
     max_retries=6,
-    timeout=10.0
+    timeout=8.0
 )
 
 bot = Bot(token=BOT_TOKEN)
