@@ -133,7 +133,7 @@
     ],
     "recommended": {
         "chat": {
-            "cheap": "openai/gpt-4o-mini",
+            "cheap": "google/gemini-flash-1.5",
             "strict": "cohere/command-r-plus",
             "creative": "openai/gpt-4o",
             "online": "perplexity/latest-large-online",
@@ -146,8 +146,10 @@
         "vision": {
             "best": "vis-openai/gpt-4o"
         },
-        "text2img": {
-            "best": "img-flux/dev"
+        "txt2img": {
+            "best": "img-flux/pro",
+            "balanced": "img-flux/dev",
+            "cheap": "img-flux/schnell"
         },
         "embedding": {
             "best": "emb-openai/text-embedding-3-large"

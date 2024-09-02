@@ -8,13 +8,15 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters.state import StateFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import F
-from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, LabeledPrice, PreCheckoutQuery
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, LabeledPrice, PreCheckoutQuery, BufferedInputFile
 import os
 from dotenv import load_dotenv
 import orjson
 import openai
 import aiohttp
 import traceback
+from base64 import b64decode
+import time
 
 load_dotenv()
 
@@ -49,6 +51,8 @@ print(f"TEST_BALANCE: {TEST_BALANCE}")
 
 with open('models.json', 'r') as f:
     MODELS = orjson.loads(f.read())
+
+IMAGE_MODEL = MODELS['recommended']['txt2img']['cheap']
 
 QUEUED_USERS = []
 
@@ -109,6 +113,33 @@ async def terms_of_use_command(message: Message):
 @dp.message(Command('privacy_policy'))
 async def privacy_policy_command(message: Message):
     await message.answer(f'Политика конфиденциальности:\n{PRIVACY_POLICY}')
+
+@dp.message(Command('help'))
+async def help_command(message: Message):
+    await message.answer(f'Руководство:\n{GUIDE}')
+
+@dp.message(Command('image'))
+async def image_command(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    QUEUED_USERS.append(message.from_user.id)
+    wait = await message.answer('Подождите немного...')
+    prompt = message.text.removeprefix('/image ')
+    if not prompt:
+        await message.answer('Пожалуйста, введите описание изображения.')
+        return None
+    user_data = await db.get_user(message.from_user.id)
+    if user_data['balance'] <= 1.8:
+        await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
+        return None
+    await db.decrease_balance(message.from_user.id, 1.8)
+    response = openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
+    image_b64_json = response.data[0].b64_json
+    image = b64decode(image_b64_json)
+    await message.answer_photo(BufferedInputFile(image, filename=f'image_{time.time()}.png'))
+    QUEUED_USERS.remove(message.from_user.id)
+    await wait.delete()
 
 @dp.callback_query(F.data.startswith('settings'))
 async def settings_callback(callback: CallbackQuery):
@@ -438,8 +469,9 @@ async def answer_to_message(message: Message):
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     model_pricing = await get_model_pricing(settings.get('model'))
-    spent_credits = float(response.usage.prompt_tokens) * float(model_pricing['prompt']) + float(response.usage.completion_tokens) * float(model_pricing['completion'])
-    await db.decrease_balance(user_id, float(spent_credits))
+    spent_prompt_credits = int(response.usage.prompt_tokens) * float(model_pricing['prompt'])
+    spent_completion_credits = int(response.usage.completion_tokens) * float(model_pricing['completion'])
+    await db.decrease_balance(user_id, spent_prompt_credits + spent_completion_credits)
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
     max_length = 4096
