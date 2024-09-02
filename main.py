@@ -476,8 +476,8 @@ async def answer_to_message(message: Message):
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     model_pricing = await get_model_pricing(settings.get('model'))
     print(model_pricing) # debug
-    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt'] / 1000)
-    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion'] / 1000)
+    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt']) / 1000
+    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits
     print(spent_credits) # debug
     print(response.usage.total_tokens) # debug
@@ -527,8 +527,8 @@ async def image_callback(message: Message):
         return None
     model_pricing = await get_model_pricing(settings.get('vision_model'))
     print(model_pricing) # debug
-    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt'] / 1000)
-    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion'] / 1000)
+    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt']) / 1000
+    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits
     print(spent_credits) # debug
     await db.decrease_balance(user_id, spent_credits + 1.5)
