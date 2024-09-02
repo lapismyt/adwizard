@@ -30,6 +30,7 @@ DEVELOPER_INFO = os.getenv('DEVELOPER_INFO')
 TERMS_OF_USE = os.getenv('TERMS_OF_USE')
 PRIVACY_POLICY = os.getenv('PRIVACY_POLICY')
 GUIDE = os.getenv('GUIDE')
+TEST_BALANCE = int(os.getenv('TEST_BALANCE'))
 
 # Debugging prints
 print(f"BOT_TOKEN: {BOT_TOKEN}")
@@ -44,6 +45,7 @@ print(f"DEVELOPER_INFO: {DEVELOPER_INFO}")
 print(f"TERMS_OF_USE: {TERMS_OF_USE}")
 print(f"PRIVACY_POLICY: {PRIVACY_POLICY}")
 print(f"GUIDE: {GUIDE}")
+print(f"TEST_BALANCE: {TEST_BALANCE}")
 
 with open('models.json', 'r') as f:
     MODELS = orjson.loads(f.read())
@@ -75,7 +77,7 @@ async def start_command(message: Message):
     user_id = message.from_user.id
     user = await db.get_user(user_id)
     if not user:
-        await db.add_user(user_id, balance=10)
+        await db.add_user(user_id, balance=TEST_BALANCE)
         user = await db.get_user(user_id)
     
     keyboard = InlineKeyboardMarkup(
@@ -352,7 +354,7 @@ async def answer_to_message(message: Message):
     settings = await db.get_settings(user_id)
     user_data = await db.get_user(user_id)
     if user_data['balance'] < 0 and user_id != int(ADMIN_ID):
-        await message.answer('Недостаточно кредитов на балансе для отправки запроса.')
+        await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     chat_history = user_data['chat_history']
     chat_history.append({"role": "user", "content": message.text})
@@ -400,7 +402,7 @@ async def image_callback(message: Message):
     settings = await db.get_settings(user_id)
     user_data = await db.get_user(user_id)
     if user_data['balance'] < 0 and user_id != int(ADMIN_ID):
-        await message.answer('Недостаточно кредитов на балансе для отправки запроса.')
+        await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     file_info = await bot.get_file(message.photo[-1].file_id)
     image_url = f'https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}'
