@@ -195,7 +195,7 @@ async def model_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith('vision_model_'))
 async def vision_model_callback(callback: CallbackQuery):
-    vision_model = callback.data.split('_')[1]
+    vision_model = callback.data.removeprefix('vision_model_')
     await db.change_vision_model(callback.from_user.id, vision_model)
     await callback.answer(f'Vision-модель установлена: {vision_model}')
 
