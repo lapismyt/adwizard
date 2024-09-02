@@ -108,13 +108,14 @@ async def privacy_policy_command(message: Message):
 @dp.callback_query(F.data.startswith('settings'))
 async def settings_callback(callback: CallbackQuery):
     settings = await db.get_settings(int(callback.from_user.id))
+    scenario = await db.get_scenario(settings['scenario'])
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=f'Модель: {settings["model"]}', callback_data='model')],
             [InlineKeyboardButton(text=f'Vision-модель: {settings["vision_model"]}', callback_data='vision_model')],
             [InlineKeyboardButton(text=f'Температура: {settings["temperature"]}', callback_data='temperature')],
             [InlineKeyboardButton(text=f'Максимальное количество слов: {settings["max_words"]}', callback_data='max_words')],
-            [InlineKeyboardButton(text=f'Сценарий: {settings["scenario"]}', callback_data='scenario')],
+            [InlineKeyboardButton(text=f'Сценарий: {scenario["scenario_name"]}', callback_data='scenario')],
             [InlineKeyboardButton(text='<- Назад', callback_data='start')]
         ]
     )
