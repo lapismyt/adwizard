@@ -480,6 +480,7 @@ async def answer_to_message(message: Message):
     spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion'])
     spent_credits = spent_prompt_credits + spent_completion_credits
     print(spent_credits) # debug
+    print(response.usage.total_tokens) # debug
     await db.decrease_balance(user_id, spent_credits)
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
