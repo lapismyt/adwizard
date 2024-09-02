@@ -177,7 +177,7 @@ async def model_callback(callback: CallbackQuery, state: FSMContext):
     model_type = callback.data.split('_')[1]
     model = MODELS['recommended']['chat'][model_type]
     await db.change_model(callback.from_user.id, model)
-    await callback.answer(f'Модель установлена: {model_type}')
+    await callback.answer(f'Модель установлена: {model}')
 
 @dp.callback_query(F.data.startswith('model'))
 async def model_callback(callback: CallbackQuery):
