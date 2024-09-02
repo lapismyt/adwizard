@@ -337,7 +337,7 @@ async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(MakeScenario.scenario_name))
 async def make_scenario_name_callback(message: Message, state: FSMContext):
     scenario_name = message.text
-    existing_scenario = await db.get_scenario_by_name(message.from_user.id, scenario_name)
+    existing_scenario = await db.get_scenario_by_name(scenario_name)
     if existing_scenario:
         await message.answer('Такой сценарий уже существует.\nВведите другое название сценария:')
         return None
