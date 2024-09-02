@@ -303,7 +303,7 @@ async def scenario_callback(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(Settings.scenario))
 async def scenario_choose_callback(message: Message, state: FSMContext):
     scenario = message.text
-    scenario = await db.get_scenario_by_name(message.from_user.id, scenario)
+    scenario = await db.get_scenario_by_name(scenario)
     if not scenario:
         await message.answer('Такого сценария не существует')
         await state.clear()
