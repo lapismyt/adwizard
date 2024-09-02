@@ -337,21 +337,18 @@ async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(MakeScenario.scenario_name))
 async def make_scenario_name_callback(message: Message, state: FSMContext):
     scenario_name = message.text
-    scenario_name = await db.get_scenario_by_name(message.from_user.id, scenario_name)
-    if scenario_name:
-        await message.answer('Такой сценарий уже существует.\nВведите название сценария:')
+    existing_scenario = await db.get_scenario_by_name(message.from_user.id, scenario_name)
+    if existing_scenario:
+        await message.answer('Такой сценарий уже существует.\nВведите другое название сценария:')
         return None
     await state.update_data(scenario_name=scenario_name)
-    await message.answer('Введите описание сценария:')
+    await message.answer(f'Название сценария: {scenario_name}\nТеперь введите описание сценария:')
     await state.set_state(MakeScenario.scenario_description)
 
 @dp.message(StateFilter(MakeScenario.scenario_description))
 async def make_scenario_description_callback(message: Message, state: FSMContext):
     state_data = await state.get_data()
-    if 'scenario_description' in state_data:
-        scenario_description = state_data['scenario_description'] + message.text
-    else:
-        scenario_description = message.text
+    scenario_description = state_data.get('scenario_description', '') + message.text
     await state.update_data(scenario_description=scenario_description)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -362,16 +359,14 @@ async def make_scenario_description_callback(message: Message, state: FSMContext
 
 @dp.callback_query(F.data == 'scenario_descr_done')
 async def make_scenario_example_dialogues_callback(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text('Введите примеры диалогов:')
+    state_data = await state.get_data()
+    await callback.message.edit_text(f'Название: {state_data.get("scenario_name")}\nОписание: {state_data.get("scenario_description")}\n\nТеперь введите примеры диалогов:')
     await state.set_state(MakeScenario.example_dialogues)
 
 @dp.message(StateFilter(MakeScenario.example_dialogues))
 async def make_scenario_example_dialogues_callback(message: Message, state: FSMContext):
     state_data = await state.get_data()
-    if 'example_dialogues' in state_data:
-        example_dialogues = state_data['example_dialogues'] + message.text
-    else:
-        example_dialogues = message.text
+    example_dialogues = state_data.get('example_dialogues', '') + message.text
     await state.update_data(example_dialogues=example_dialogues)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -386,8 +381,14 @@ async def make_scenario_example_dialogues_callback(callback: CallbackQuery, stat
     scenario_name = data.get('scenario_name')
     scenario_description = data.get('scenario_description')
     example_dialogues = data.get('example_dialogues')
+    
+    if not scenario_name or not scenario_description or not example_dialogues:
+        await callback.message.answer('Ошибка: не все данные сценария заполнены. Пожалуйста, начните создание сценария заново.')
+        await state.clear()
+        return
+
     scenario_id = await db.add_scenario(callback.from_user.id, scenario_name, scenario_description, example_dialogues)
-    await callback.message.answer(f'Сценарий создан: {scenario_name}')
+    await callback.message.answer(f'Сценарий создан:\nНазвание: {scenario_name}\nОписание: {scenario_description}\nПримеры диалогов: {example_dialogues[:100]}...')
     await state.clear()
 
 @dp.message(Command('restore_balance'))
