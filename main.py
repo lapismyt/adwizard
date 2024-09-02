@@ -458,6 +458,7 @@ async def answer_to_message(message: Message):
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
+        QUEUED_USERS.remove(message.from_user.id)
         return None
     chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
     max_words = settings.get('max_words')
@@ -474,7 +475,14 @@ async def answer_to_message(message: Message):
             chat_history.pop(0)
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
-    model_pricing = await get_model_pricing(settings.get('model'))
+    await asyncio.sleep(0.2)
+    try:
+        model_pricing = await get_model_pricing(settings.get('model'))
+    except:
+        traceback.print_exc()
+        QUEUED_USERS.remove(message.from_user.id)
+        await message.answer('Ошибка!')
+        return None
     print(model_pricing) # debug
     spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion']) / 1000
@@ -524,8 +532,16 @@ async def image_callback(message: Message):
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
+        QUEUED_USERS.remove(message.from_user.id)
         return None
-    model_pricing = await get_model_pricing(settings.get('vision_model'))
+    await asyncio.sleep(0.2)
+    try:
+        model_pricing = await get_model_pricing(settings.get('vision_model'))
+    except:
+        traceback.print_exc()
+        QUEUED_USERS.remove(message.from_user.id)
+        await message.answer('Ошибка!')
+        return None
     print(model_pricing) # debug
     spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion']) / 1000
