@@ -114,8 +114,7 @@ class DB:
                 'id': row[0],
                 'scenario_name': row[2],
                 'scenario_description': row[3],
-                'character_description': row[4],
-                'example_dialogue': row[5]
+                'example_dialogue': row[4]
             }
     
     async def update_scenario(self, scenario_id: int, data: dict):
