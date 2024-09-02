@@ -412,7 +412,10 @@ async def get_model_pricing(model_name):
     for model in models_list:
         if model['id'] == model_name:
             return model['pricing']
-    return None
+    return {
+        'prompt': 0.1,
+        'completion': 0.15
+    }
 
 @dp.message(F.text)
 async def answer_to_message(message: Message):
@@ -472,9 +475,12 @@ async def answer_to_message(message: Message):
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     model_pricing = await get_model_pricing(settings.get('model'))
-    spent_prompt_credits = int(response.usage.prompt_tokens) * float(model_pricing['prompt'])
-    spent_completion_credits = int(response.usage.completion_tokens) * float(model_pricing['completion'])
-    await db.decrease_balance(user_id, spent_prompt_credits + spent_completion_credits)
+    print(model_pricing) # debug
+    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt'])
+    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion'])
+    spent_credits = spent_prompt_credits + spent_completion_credits
+    print(spent_credits) # debug
+    await db.decrease_balance(user_id, spent_credits)
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
     max_length = 4096
@@ -519,8 +525,12 @@ async def image_callback(message: Message):
         traceback.print_exc()
         return None
     model_pricing = await get_model_pricing(settings.get('vision_model'))
-    spent_credits = float(response.usage.prompt_tokens) * float(model_pricing['prompt']) + float(response.usage.completion_tokens) * float(model_pricing['completion'])
-    await db.decrease_balance(user_id, float(spent_credits) + 1.5)
+    print(model_pricing) # debug
+    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt'])
+    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion'])
+    spent_credits = spent_prompt_credits + spent_completion_credits
+    print(spent_credits) # debug
+    await db.decrease_balance(user_id, spent_credits + 1.5)
     await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
     response_text = response.choices[0].message.content
     max_length = 4096
