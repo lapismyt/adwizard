@@ -130,7 +130,7 @@ async def image_command(message: Message):
         await message.answer('Пожалуйста, введите описание изображения.')
         return None
     user_data = await db.get_user(message.from_user.id)
-    if user_data['balance'] <= 1.8:
+    if user_data['balance'] <= 1.8 and message.from_user.id != int(ADMIN_ID):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     await db.decrease_balance(message.from_user.id, 1.8)
