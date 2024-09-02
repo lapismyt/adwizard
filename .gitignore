@@ -2,3 +2,4 @@
 data.sqlite
 .env
 __pycache__
+venv
