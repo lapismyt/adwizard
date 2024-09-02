@@ -281,6 +281,9 @@ async def scenario_choose_callback(message: Message, state: FSMContext):
 
 @dp.callback_query(F.data.startswith('clear'))
 async def clear_callback(callback: CallbackQuery):
+    if callback.from_user.id in QUEUED_USERS:
+        await callback.message.edit_text('Сначала дождитесь выполнения запроса.')
+        return None
     await db.clear_chat(callback.from_user.id)
     await callback.message.edit_text('Чат очищен')
 
