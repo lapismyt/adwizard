@@ -395,12 +395,16 @@ async def answer_to_message(message: Message):
         traceback.print_exc()
         return None
     chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
-    while sum(
-        len(part['text'].split()) if isinstance(msg['content'], list) and 'text' in part else len(msg['content'].split())
-        for msg in chat_history for part in (msg['content'] if isinstance(msg['content'], list) else [msg])
-    ) > settings.get('max_words'):
-        if chat_history[0]['role'] == 'system':
-            chat_history.pop(1)
+    max_words = settings.get('max_words')
+    total_words = sum(len(msg['content'].split()) if isinstance(msg['content'], str) else sum(len(cont['text'].split()) for cont in msg['content'] if cont['type'] == 'text') for msg in chat_history if msg['role'] != 'system')
+    
+    while total_words > max_words:
+        if chat_history[0]['role'] != 'system':
+            if isinstance(chat_history[0]['content'], str):
+                total_words -= len(chat_history[0]['content'].split())
+            else:
+                total_words -= sum(len(cont['text'].split()) for cont in chat_history[0]['content'] if cont['type'] == 'text')
+            chat_history.pop(0)
         else:
             chat_history.pop(0)
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
