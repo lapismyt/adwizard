@@ -144,6 +144,92 @@ async def image_command(message: Message):
     QUEUED_USERS.remove(message.from_user.id)
     await wait.delete()
 
+@dp.message(Command('cancel'))
+async def cancel_command(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    user_data = await db.get_user(message.from_user.id)
+    chat_history = user_data['chat_history']
+    user_messages = [msg for msg in chat_history if msg['role'] != 'system']
+    if len(user_messages) > 2:
+        chat_history = chat_history[:-2]
+        await db.update_user(message.from_user.id, {'chat_history': chat_history})
+        await message.answer('Последний запрос отменен.')
+    else:
+        await message.answer('Недостаточно сообщений для удаления.')
+
+@dp.message(Command('reroll'))
+async def reroll_command(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    QUEUED_USERS.append(message.from_user.id)
+    wait = await message.answer(text='Подождите немного...')
+    user_id = message.from_user.id
+    settings = await db.get_settings(user_id)
+    user_data = await db.get_user(user_id)
+    
+    if user_data['balance'] < 0 and user_id != int(ADMIN_ID):
+        await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
+        QUEUED_USERS.remove(user_id)
+        return None
+    
+    chat_history = user_data['chat_history']
+    if len(chat_history) < 2 or chat_history[-1]['role'] != 'assistant':
+        await message.answer('Нет предыдущего ответа для повторной генерации.')
+        QUEUED_USERS.remove(user_id)
+        return None
+    
+    # Удаляем последний ответ ассистента
+    chat_history.pop()
+    
+    try:
+        response = openai_client.chat.completions.create(
+            model=settings.get('model'),
+            messages=chat_history,
+            temperature=settings.get('temperature')
+        )
+    except Exception as e:
+        await message.answer('Ошибка при генерации нового ответа!')
+        traceback.print_exc()
+        QUEUED_USERS.remove(user_id)
+        return None
+    
+    new_response = response.choices[0].message.content
+    chat_history.append({'role': 'assistant', 'content': new_response})
+    
+    try:
+        model_pricing = await get_model_pricing(settings.get('model'))
+    except:
+        traceback.print_exc()
+        QUEUED_USERS.remove(user_id)
+        await message.answer('Ошибка при получении цены модели!')
+        return None
+    
+    spent_prompt_credits = response.usage.prompt_tokens * float(model_pricing['prompt']) / 1000
+    spent_completion_credits = response.usage.completion_tokens * float(model_pricing['completion']) / 1000
+    spent_credits = spent_prompt_credits + spent_completion_credits
+    
+    await db.decrease_balance(user_id, spent_credits)
+    await db.increase_total_chat_requests(user_id, response.usage.total_tokens)
+    await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
+    
+    max_length = 4096
+    if len(new_response) > max_length:
+        for i in range(0, len(new_response), max_length):
+            part = new_response[i:i + max_length]
+            await message.answer(part)
+    else:
+        try:
+            await message.answer(new_response, parse_mode='markdown')
+        except Exception as e:
+            await message.answer(new_response)
+    
+    await wait.delete()
+    QUEUED_USERS.remove(user_id)
+
+
 @dp.callback_query(F.data == 'settings')
 async def settings_callback(callback: CallbackQuery):
     settings = await db.get_settings(int(callback.from_user.id))
@@ -429,6 +515,7 @@ async def answer_to_message(message: Message):
     user_data = await db.get_user(user_id)
     if user_data['balance'] < 0 and user_id != int(ADMIN_ID):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
+        QUEUED_USERS.remove(message.from_user.id)
         return None
     chat_history = user_data['chat_history']
     chat_history.append({"role": "user", "content": message.text})
@@ -506,7 +593,7 @@ async def answer_to_message(message: Message):
     QUEUED_USERS.remove(message.from_user.id)
 
 @dp.message(F.content_type == 'photo')
-async def image_callback(message: Message):
+async def answer_to_image(message: Message):
     if message.from_user.id in QUEUED_USERS:
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
