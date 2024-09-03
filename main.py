@@ -711,3 +711,10 @@ async def answer_to_image(message: Message):
     
     await wait.delete()
     QUEUED_USERS.remove(message.from_user.id)
+
+async def main():
+    await db.create_tables()
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(main())
