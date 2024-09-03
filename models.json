@@ -1,6 +1,8 @@
 {
     "chat": [
         "openai/gpt-3.5-turbo",
+        "openai/gpt-3.5-turbo-16k",
+        "openai/gpt-3.5-turbo-0125",
         "openai/gpt-4",
         "openai/gpt-4-turbo",
         "openai/gpt-4o",
@@ -80,6 +82,8 @@
         "qwen/qwen-32b-chat",
         "qwen/qwen-72b-chat",
         "qwen/qwen-110b-chat",
+        "cohere/command-r-plus-08-2024",
+        "cohere/command-r-08-2024",
         "OMF-IlyaGusev/saiga_llama3_8b",
         "OMF-lightblue/suzume-llama-3-8B-multilingual",
         "OMF-abacusai/Smaug-Llama-3-70B-Instruct",
