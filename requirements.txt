@@ -4,3 +4,5 @@ openai
 aiohttp
 python-dotenv
 orjson
+asyncache
+tiktoken
