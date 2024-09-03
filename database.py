@@ -72,7 +72,14 @@ class DB:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("INSERT INTO users (user_id, balance) VALUES (?, ?)",
                              (user_id, balance))
+            await db.execute("INSERT INTO stats (user_id) VALUES (?)", (user_id,))
             await db.commit()
+    
+    async def get_all_users(self):
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute('SELECT user_id FROM users') as cursor:
+                users = await cursor.fetchall()
+        return [{"id": user[0]} for user in users]
 
     async def get_scenarios(self, user_id: int) -> list:
         async with aiosqlite.connect(self.db_path) as db:

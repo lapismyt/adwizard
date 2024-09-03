@@ -18,6 +18,7 @@ import aiohttp
 import traceback
 from base64 import b64decode
 import time
+import aiosqlite
 
 load_dotenv()
 
@@ -79,6 +80,9 @@ class MakeScenario(StatesGroup):
     scenario_description = State()
     example_dialogues = State()
 
+class AdminStates(StatesGroup):
+    waiting_for_broadcast_message = State()
+
 model_pricing_cache = {}
 models_list_cache = {}
 
@@ -125,7 +129,7 @@ async def stream_response(message: Message, response_stream, model, edit_interva
     sent_message = None
     total_tokens = 0
 
-    async for chunk in response_stream:
+    for chunk in response_stream:
         if chunk.choices[0].delta.content is not None:
             new_content = chunk.choices[0].delta.content
             full_response += new_content
@@ -711,6 +715,36 @@ async def answer_to_image(message: Message):
     
     await wait.delete()
     QUEUED_USERS.remove(message.from_user.id)
+
+@dp.message(Command('broadcast'))
+async def cmd_broadcast(message: Message, state: FSMContext):
+    if str(message.from_user.id) != ADMIN_ID:
+        await message.answer('У вас нет прав для использования этой команды.')
+        return
+    
+    await message.answer('Введите сообщение для рассылки:')
+    await state.set_state(AdminStates.waiting_for_broadcast_message)
+
+@dp.message(StateFilter(AdminStates.waiting_for_broadcast_message))
+async def process_broadcast_message(message: Message, state: FSMContext):
+    if str(message.from_user.id) != ADMIN_ID:
+        await message.answer('У вас нет прав для использования этой команды.')
+        await state.clear()
+        return
+    
+    broadcast_message = message.text
+    users = await db.get_all_users()
+    
+    sent_count = 0
+    for user in users:
+        try:
+            await bot.send_message(user['id'], broadcast_message)
+            sent_count += 1
+        except Exception as e:
+            print(f'Failed to send message to user {user["id"]}: {e}')
+    
+    await message.answer(f'Рассылка завершена. Отправлено {sent_count} из {len(users)} пользователей.')
+    await state.clear()
 
 async def main():
     await db.create_tables()
