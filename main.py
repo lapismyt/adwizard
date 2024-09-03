@@ -60,7 +60,7 @@ openai_client = openai.OpenAI(
     api_key=VSEGPT_TOKEN,
     base_url=VSEGPT_URL,
     max_retries=4,
-    timeout=10.0
+    timeout=20.0
 )
 
 bot = Bot(token=BOT_TOKEN)
@@ -128,7 +128,7 @@ async def image_command(message: Message):
         return None
     QUEUED_USERS.append(message.from_user.id)
     wait = await message.answer('Подождите немного...')
-    prompt = message.text.removeprefix('/image ')
+    prompt = message.text.removeprefix('/image').strip()
     if not prompt:
         await message.answer('Пожалуйста, введите описание изображения.')
         return None
