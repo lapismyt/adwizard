@@ -326,13 +326,16 @@ async def image_command(message: Message, state: FSMContext):
     if not prompt:
         await message.answer('Пожалуйста, введите описание изображения.')
         return None
+        QUEUED_USERS.remove(message.from_user.id)
+        await wait.delete()
     user_data = await db.get_user(message.from_user.id)
     if user_data['balance'] <= 1.8 and message.from_user.id != int(ADMIN_ID):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     await db.decrease_balance(message.from_user.id, 1.8)
     try:
-        response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
+        await db.increase_total_image_requests(message.from_user.id)
+    response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
         image_b64_json = response.data[0].b64_json
         image = b64decode(image_b64_json)
         await message.answer_photo(BufferedInputFile(image, filename=f'image_{time.time()}.png'))
@@ -428,7 +431,7 @@ async def settings_callback(callback: CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text=f'Модель: {settings["model"]}', callback_data='model')],
             [InlineKeyboardButton(text=f'Vision-модель: {settings["vision_model"]}', callback_data='vision_model')],
             [InlineKeyboardButton(text=f'Температура: {settings["temperature"]}', callback_data='temperature')],
-            [InlineKeyboardButton(text=f'Максимальное количество слов: {settings["max_words"]}', callback_data='max_words')],
+            [InlineKeyboardButton(text=f'Максимальная длина переписки: {settings["max_words"]}', callback_data='max_words')],
             [InlineKeyboardButton(text=f'Сценарий: {scenario["scenario_name"]}', callback_data='scenario')],
             [InlineKeyboardButton(text='<- Назад', callback_data='start')]
         ]
@@ -533,7 +536,11 @@ async def model_choose_callback(message: Message, state: FSMContext):
         await message.answer(text='OMF модели временно отключены')
         return None
     models_list = await get_models_list()
-    if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or (model not in models_list):
+    exists = False
+    for mdl in models_list:
+        if mdl['id'] == model:
+            exists = True
+    if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or not exists:
         await message.answer(text='Такой модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text='openai/gpt-4o-mini', callback_data='model_custom:openai/gpt-4o-mini')]
@@ -611,7 +618,7 @@ async def guide_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data == 'make_scenario')
 async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text('��ведите название сценария:')
+    await callback.message.edit_text('Введите название сценария:')
     await state.set_state(MakeScenario.scenario_name)
 
 @dp.message(StateFilter(MakeScenario.scenario_name))
@@ -982,7 +989,7 @@ async def answer_to_image(message: Message):
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
     await db.decrease_balance(user_id, spent_credits)
-    await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
+    await db.increase_total_image_requests(user_id, prompt_tokens + completion_tokens)
     chat_history = user_data['chat_history']
     chat_history.append({'role': 'user', 'content': [
         {'type': 'text', 'text': message.caption or ''},
