@@ -482,6 +482,7 @@ async def model_callback(callback: CallbackQuery, state: FSMContext):
     model_type = callback.data.split('_')[1].split(':')[0]
     if model_type == 'custom':
         model = callback.data.split('_')[1].split(':')[1]
+        await state.clear()
     else:
         model = MODELS['recommended']['chat'][model_type]
     await db.change_model(callback.from_user.id, model)
