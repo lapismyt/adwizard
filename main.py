@@ -725,17 +725,25 @@ async def answer_to_message(message: Message):
                 break
         if contains_image:
             model = settings.get('vision_model')
+            response = await openai_client.chat.completions.create(
+                model=model,
+                messages=chat_history,
+                temperature=settings.get('temperature'),
+                max_tokens=2600
+            )
+            response_text = response.choices[0].message.content
+            completion_tokens = response.usage.completion_tokens
+            await message.answer(response_text[:4096])
         else:
             model = settings.get('model')
-        
-        response_stream = await openai_client.chat.completions.create(
-            model=model,
-            messages=chat_history,
-            temperature=settings.get('temperature'),
-            stream=True,
-            max_tokens=2600
-        )
-        response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
+            response_stream = await openai_client.chat.completions.create(
+                model=model,
+                messages=chat_history,
+                temperature=settings.get('temperature'),
+                stream=True,
+                max_tokens=2600
+            )
+            response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
@@ -816,11 +824,11 @@ async def answer_to_image(message: Message):
     await db.decrease_balance(user_id, spent_credits)
     await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
     chat_history = user_data['chat_history']
-    chat_history.append({'role': "user", 'content': [
-        {'type': "text", 'text': message.caption},
-        {'type': "image_url", 'image_url': {'url': image_url}}
+    chat_history.append({'role': 'user', 'content': [
+        {'type': 'text', 'text': message.caption or ''},
+        {'type': 'image_url', 'image_url': {'url': image_url}}
     ]})
-    chat_history.append({'role': "assistant", 'content': response_text})
+    chat_history.append({'role': 'assistant', 'content': response_text})
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     await message.answer(response_text[:4096])
     await wait.delete()
@@ -852,26 +860,28 @@ async def reroll_command(message: Message):
         QUEUED_USERS.remove(user_id)
         return None
     chat_history.pop(-1)
+    
+    # Проверяем, содержит ли последнее сообщение изображение
     last_message = chat_history[-1]
+    use_vision_model = False
     if isinstance(last_message['content'], list):
         for content in last_message['content']:
             if content['type'] == 'image_url':
-                image_url = content['image_url']['url']
+                use_vision_model = True
                 break
-        else:
-            image_url = None
-    else:
-        image_url = None
+    
     try:
-        if image_url:
+        if use_vision_model:
             model = settings.get('vision_model')
-            response_stream = await openai_client.chat.completions.create(
+            response = await openai_client.chat.completions.create(
                 model=model,
                 messages=chat_history,
                 temperature=settings.get('temperature'),
-                stream=True,
                 max_tokens=2600
             )
+            response_text = response.choices[0].message.content
+            completion_tokens = response.usage.completion_tokens
+            await message.answer(response_text[:4096])
         else:
             model = settings.get('model')
             response_stream = await openai_client.chat.completions.create(
@@ -881,12 +891,13 @@ async def reroll_command(message: Message):
                 stream=True,
                 max_tokens=2600
             )
-        response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
+            response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
         QUEUED_USERS.remove(user_id)
         return None
+    
     chat_history.append({'role': 'assistant', 'content': response_text})
     max_words = settings.get('max_words')
     total_words = sum(len(msg['content'].split()) if isinstance(msg['content'], str) else sum(len(cont['text'].split()) for cont in msg['content'] if cont['type'] == 'text') for msg in chat_history if msg['role'] != 'system')
