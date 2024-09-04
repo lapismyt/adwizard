@@ -298,8 +298,8 @@ async def stats_command(message: Message, state: FSMContext):
     total_stats = await db.get_total_stats()
     await message.answer(
         f'Ваша статистика:\n'
-        f'Сгенерированные токены: {round(user_stats["generated_tokens"], 2)}\n'
-        f'Потраченные кредиты: {user_stats["spent_credits"]}\n'
+        f'Сгенерированные токены: {user_stats["generated_tokens"]}\n'
+        f'Потраченные кредиты: {round(user_stats["spent_credits"], 2)}\n'
         f'Всего запросов чата: {user_stats["total_chat_requests"]}\n'
         f'Всего запросов изображений: {user_stats["total_image_requests"]}\n'
         f'Всего запросов аудио: {user_stats["total_audio_requests"]}\n'
