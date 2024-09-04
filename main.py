@@ -607,7 +607,7 @@ async def guide_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data == 'make_scenario')
 async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text('��ведите название сценария:')
+    await callback.message.edit_text('Введите название сценария:')
     await state.set_state(MakeScenario.scenario_name)
 
 @dp.message(StateFilter(MakeScenario.scenario_name))
