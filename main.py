@@ -112,6 +112,7 @@ async def get_model_pricing(model_name):
         if model['id'] == model_name:
             pricing = model['pricing']
             model_pricing_cache[model_name] = pricing
+            print(pricing) # debug
             return pricing
     default_pricing = {
         'prompt': 0.1,
