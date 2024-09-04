@@ -753,6 +753,7 @@ async def answer_to_message(message: Message):
         await message.answer('Ошибка!')
         return None
     prompt_tokens = sum(count_tokens(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
+    print(prompt_tokens, completion_tokens) # debug
     spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
