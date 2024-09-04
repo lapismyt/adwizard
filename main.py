@@ -251,9 +251,6 @@ async def help_command(message: Message):
 
 @dp.message(Command('stats'))
 async def stats_command(message: Message):
-    # Отобразить общую статистику и статистику пользователя
-    # Личная статистика: всё из таблицы stats
-    # Общая статистика: количество пользователей + суммы всех значений из таблицы stats
     user_stats = await db.get_user_stats(message.from_user.id)
     total_users = await db.get_total_users()
     total_stats = await db.get_total_stats()
@@ -273,7 +270,7 @@ async def stats_command(message: Message):
         f'Суммарные запросы изображений: {total_stats["total_image_requests"]}\n'
         f'Суммарные запросы аудио: ~{total_stats["total_audio_requests"]}~ скоро\n'
         f'Суммарные запросы видения: {total_stats["total_vision_requests"]}',
-    parse_mode='markdown')
+    parse_mode='MarkdownV2')
 
 @dp.message(Command('image'))
 async def image_command(message: Message):
