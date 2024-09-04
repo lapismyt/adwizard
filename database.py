@@ -155,7 +155,6 @@ class DB:
             await db.commit()
     
     async def decrease_balance(self, user_id: int, amount: float):
-        print('decreasing', amount) # debug
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('UPDATE users SET balance = balance - ? WHERE user_id = ?', (amount, user_id))
             await db.execute('UPDATE stats SET spent_credits = spent_credits + ? WHERE user_id = ?', (amount, user_id))
@@ -174,7 +173,12 @@ class DB:
 
     async def increase_total_vision_requests(self, user_id: int):
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute('UPDATE stats SET total_vision_requests = total_image_requests + 1 WHERE user_id = ?', (user_id,))
+            await db.execute('UPDATE stats SET total_vision_requests = total_vision_requests + 1 WHERE user_id = ?', (user_id,))
+            await db.commit()
+    
+    async def increase_total_audio_requests(self, user_id: int):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('UPDATE stats SET total_audio_requests = total_audio_requests + 1 WHERE user_id = ?', (user_id,))
             await db.commit()
 
     async def increase_balance(self, user_id: int, amount: float):
