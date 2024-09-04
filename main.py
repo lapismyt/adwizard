@@ -529,7 +529,11 @@ async def model_choose_callback(message: Message, state: FSMContext):
         await message.answer(text='OMF модели временно отключены')
         return None
     models_list = await get_models_list()
-    if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or (model not in models_list):
+    exists = False
+    for model in model_list:
+        if model['id'] == model:
+            exists = True
+    if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or not exists:
         await message.answer(text='Такой модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text='openai/gpt-4o-mini', callback_data='model_custom:openai/gpt-4o-mini')]
