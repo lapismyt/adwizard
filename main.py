@@ -14,7 +14,7 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, C
 import os
 from dotenv import load_dotenv
 import orjson
-import openai
+from openai import AsyncOpenAI
 import aiohttp
 import traceback
 from base64 import b64decode
@@ -60,7 +60,7 @@ IMAGE_MODEL = MODELS['recommended']['txt2img']['cheap']
 
 QUEUED_USERS = []
 
-openai_client = openai.OpenAI(
+openai_client = AsyncOpenAI(
     api_key=VSEGPT_TOKEN,
     base_url=VSEGPT_URL,
     max_retries=4,
@@ -137,7 +137,7 @@ async def stream_response(message: Message, response_stream, model, edit_interva
     last_edit_time = time.time()
     sent_message = None
     total_tokens = 0
-    for chunk in response_stream:
+    async for chunk in response_stream:
         if chunk.choices[0].delta.content is not None:
             new_content = chunk.choices[0].delta.content
             full_response += new_content
@@ -265,7 +265,7 @@ async def image_command(message: Message):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     await db.decrease_balance(message.from_user.id, 1.8)
-    response = openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
+    response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
     image_b64_json = response.data[0].b64_json
     image = b64decode(image_b64_json)
     await message.answer_photo(BufferedInputFile(image, filename=f'image_{time.time()}.png'))
@@ -315,7 +315,7 @@ async def reroll_command(message: Message):
     chat_history.pop()
     model = settings.get('model')
     try:
-        response_stream = openai_client.chat.completions.create(
+        response_stream = await openai_client.chat.completions.create(
             model=model,
             messages=chat_history,
             temperature=settings.get('temperature'),
@@ -641,7 +641,7 @@ async def process_broadcast_message(message: Message, state: FSMContext):
             sent_count += 1
         except Exception as e:
             print(f'Failed to send message to user {user["id"]}: {e}')
-    await message.answer(f'Рассылка завершена. Отправлено {sent_count} из {len(users)} пользователей.')
+    await message.answer(f'Рассылка заверше��а. Отправлено {sent_count} из {len(users)} пользователей.')
     await state.clear()
 
 @dp.message(F.text)
@@ -681,7 +681,7 @@ async def answer_to_message(message: Message):
         else:
             model = settings.get('model')
         
-        response_stream = openai_client.chat.completions.create(
+        response_stream = await openai_client.chat.completions.create(
             model=model,
             messages=chat_history,
             temperature=settings.get('temperature'),
@@ -750,7 +750,7 @@ async def answer_to_image(message: Message):
     image_url = f'https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}'
     model = settings.get('vision_model')
     try:
-        response_stream = openai_client.chat.completions.create(
+        response_stream = await openai_client.chat.completions.create(
             model=model,
             messages=user_data['chat_history'] + [{'role': 'user', 'content': [
                 {'type': 'text', 'text': message.caption},
@@ -828,7 +828,7 @@ async def reroll_command(message: Message):
     try:
         if image_url:
             model = settings.get('vision_model')
-            response_stream = openai_client.chat.completions.create(
+            response_stream = await openai_client.chat.completions.create(
                 model=model,
                 messages=chat_history,
                 temperature=settings.get('temperature'),
@@ -836,7 +836,7 @@ async def reroll_command(message: Message):
             )
         else:
             model = settings.get('model')
-            response_stream = openai_client.chat.completions.create(
+            response_stream = await openai_client.chat.completions.create(
                 model=model,
                 messages=chat_history,
                 temperature=settings.get('temperature'),
