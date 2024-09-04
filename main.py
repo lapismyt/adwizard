@@ -134,10 +134,21 @@ def get_tiktoken_encoder(model: str) -> tiktoken.Encoding:
     return tiktoken_encoders[model]
 
 def count_tokens(text, model):
-    encoder = get_tiktoken_encoder(model)
-    encoded = encoder.encode(text)
-    print(encoded)
-    return len(encoded)
+    try:
+        encoder = get_tiktoken_encoder(model)
+        encoded = encoder.encode(text)
+        return len(encoded)
+    except Exception as e:
+        print(f"Error counting tokens: {e}")
+        return 0
+
+def count_tokens_for_message(content, model):
+    if isinstance(content, str):
+        return count_tokens(content, model)
+    elif isinstance(content, list):
+        return sum(count_tokens(item['text'], model) for item in content if item['type'] == 'text')
+    else:
+        return 0
 
 async def stream_response(message: Message, response_stream, model, edit_interval=0.5):
     full_response = ""
@@ -280,7 +291,7 @@ async def stats_command(message: Message):
         f'Потраченные кредиты: {user_stats["spent_credits"]}\n'
         f'Всего запросов чата: {user_stats["total_chat_requests"]}\n'
         f'Всего запросов изображений: {user_stats["total_image_requests"]}\n'
-        f'Всего запросов аудио: <s>{user_stats["total_audio_requests"]}</s> скоро\n'
+        f'Всего запросов аудио:  {user_stats["total_audio_requests"]} скоро\n'
         f'Всего запросов видения: {user_stats["total_vision_requests"]}\n\n'
         f'Общая статистика:\n'
         f'Всего пользователей: {total_users}\n'
@@ -288,7 +299,7 @@ async def stats_command(message: Message):
         f'Суммарные потраченные кредиты: {total_stats["spent_credits"]}\n'
         f'Суммарные запросы чата: {total_stats["total_chat_requests"]}\n'
         f'Суммарные запросы изображений: {total_stats["total_image_requests"]}\n'
-        f'Суммарные запросы аудио: <s>{total_stats["total_audio_requests"]}</s> скоро\n'
+        f'Суммарные запросы аудио:  {total_stats["total_audio_requests"]} скоро\n'
         f'Суммарные запросы видения: {total_stats["total_vision_requests"]}',
     parse_mode='HTML')
 
@@ -378,7 +389,7 @@ async def reroll_command(message: Message):
         QUEUED_USERS.remove(user_id)
         await message.answer('Ошибка при получении цены модели!')
         return None
-    prompt_tokens = sum(count_tokens(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
+    prompt_tokens = sum(count_tokens_for_message(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
     spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
@@ -535,7 +546,7 @@ async def max_words_callback(callback: CallbackQuery, state: FSMContext):
 async def max_words_choose_callback(message: Message, state: FSMContext):
     max_words = int(message.text)
     if max_words < 10 or max_words > 10000:
-        await message.answer('Максимальное количество слов должно быть от 10 до 10000')
+        await message.answer('Максимальное количество слов должно ��ыть от 10 до 10000')
         return None
     await db.change_max_words(message.from_user.id, max_words)
     await message.answer(f'Максимальное количество слов установлено: {max_words}')
@@ -577,7 +588,7 @@ async def guide_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data == 'make_scenario')
 async def make_scenario_callback(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text('Введите название сценария:')
+    await callback.message.edit_text('��ведите название сценария:')
     await state.set_state(MakeScenario.scenario_name)
 
 @dp.message(StateFilter(MakeScenario.scenario_name))
@@ -666,7 +677,7 @@ async def process_broadcast_message(message: Message, state: FSMContext):
             sent_count += 1
         except Exception as e:
             print(f'Failed to send message to user {user["id"]}: {e}')
-    await message.answer(f'Рассылка заверше��а. Отправлено {sent_count} из {len(users)} пользователей.')
+    await message.answer(f'Рассылка завершена. Отправлено {sent_count} из {len(users)} пользователей.')
     await state.clear()
 
 @dp.message(F.text)
@@ -739,7 +750,7 @@ async def answer_to_message(message: Message):
         QUEUED_USERS.remove(message.from_user.id)
         await message.answer('Ошибка!')
         return None
-    prompt_tokens = sum(count_tokens(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
+    prompt_tokens = sum(count_tokens_for_message(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
     print(prompt_tokens, completion_tokens) # debug
     spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
@@ -797,7 +808,7 @@ async def answer_to_image(message: Message):
         QUEUED_USERS.remove(message.from_user.id)
         await message.answer('Ошибка!')
         return None
-    prompt_tokens = sum(count_tokens(msg['content'], model) for msg in user_data['chat_history'] if msg['role'] != 'assistant')
+    prompt_tokens = sum(count_tokens_for_message(msg['content'], model) for msg in user_data['chat_history'] if msg['role'] != 'assistant')
     prompt_tokens += count_tokens(message.caption or "", model)
     spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
@@ -897,7 +908,7 @@ async def reroll_command(message: Message):
         await message.answer('Ошибка!')
         return None
     
-    prompt_tokens = sum(count_tokens(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
+    prompt_tokens = sum(count_tokens_for_message(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
     spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
