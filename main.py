@@ -643,24 +643,6 @@ async def restore_balance_command(message: Message):
     await db.restore_balance(message.from_user.id)
     await message.answer('Баланс восстановлен')
 
-async def get_models_list():
-    async with aiohttp.ClientSession() as session:
-        async with session.get(VSEGPT_URL.rstrip('/') + '/models') as response:
-            if response.status == 200:
-                return (await response.json())['data']
-            else:
-                return []
-
-async def get_model_pricing(model_name):
-    models_list = await get_models_list()
-    for model in models_list:
-        if model['id'] == model_name:
-            return model['pricing']
-    return {
-        'prompt': 0.1,
-        'completion': 0.15
-    }
-
 @dp.message(Command('broadcast'))
 async def cmd_broadcast(message: Message, state: FSMContext):
     if str(message.from_user.id) != ADMIN_ID:
