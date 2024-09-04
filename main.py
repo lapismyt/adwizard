@@ -119,7 +119,7 @@ async def get_model_pricing(model_name):
 # Добавляем кэш для энкодеров tiktoken
 tiktoken_encoders = {}
 
-def get_tiktoken_encoder(model: str):
+def get_tiktoken_encoder(model: str) -> tiktoken.Encoding:
     if model not in tiktoken_encoders:
         if model.startswith('openai/') or model.startswith('translate-openai/'):
             model = model.removeprefix('openai/').removeprefix('translate-openai/')
@@ -130,7 +130,9 @@ def get_tiktoken_encoder(model: str):
 
 def count_tokens(text, model):
     encoder = get_tiktoken_encoder(model)
-    return len(encoder.encode(text))
+    encoded = encoder.encode(text)
+    print(encoded)
+    return len(encoded)
 
 async def stream_response(message: Message, response_stream, model, edit_interval=0.5):
     full_response = ""
@@ -750,12 +752,10 @@ async def answer_to_message(message: Message):
         QUEUED_USERS.remove(message.from_user.id)
         await message.answer('Ошибка!')
         return None
-    
     prompt_tokens = sum(count_tokens(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
     spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
-    
     await db.decrease_balance(user_id, spent_credits)
     await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
     

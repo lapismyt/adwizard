@@ -155,7 +155,7 @@ class DB:
             await db.commit()
     
     async def decrease_balance(self, user_id: int, amount: float):
-        print('decreasinng', amount) # debug
+        print('decreasing', amount) # debug
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('UPDATE users SET balance = balance - ? WHERE user_id = ?', (amount, user_id))
             await db.execute('UPDATE stats SET spent_credits = spent_credits + ? WHERE user_id = ?', (amount, user_id))
