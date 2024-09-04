@@ -21,7 +21,7 @@ from base64 import b64decode
 import time
 import aiosqlite
 from aiogram import BaseMiddleware
-
+from aiogram.exceptions import TelegramBadRequest
 load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -155,9 +155,15 @@ async def stream_response(message: Message, response_stream, model, edit_interva
                 last_edit_time = current_time
     if sent_message:
         if sent_message.text != full_response[:4096]:
-            await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
+            try:
+                await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
+            except TelegramBadRequest:
+                await sent_message.edit_text(full_response[:4096])
     else:
-        await message.answer(full_response[:4096], parse_mode='markdown')
+        try:
+            await message.answer(full_response[:4096], parse_mode='markdown')
+        except TelegramBadRequest:
+            await message.answer(full_response[:4096])
     return full_response, sent_message, total_tokens
 
 async def count_images_in_chat(chat_history):
@@ -711,7 +717,7 @@ async def answer_to_message(message: Message):
             messages=chat_history,
             temperature=settings.get('temperature'),
             stream=True,
-            max_tokens=4000
+            max_tokens=2600
         )
         response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
     except Exception as e:
@@ -784,7 +790,7 @@ async def answer_to_image(message: Message):
             ]}],
             temperature=settings.get('temperature'),
             stream=True,
-            max_tokens=4000
+            max_tokens=2600
         )
         response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
     except Exception as e:
@@ -860,7 +866,7 @@ async def reroll_command(message: Message):
                 messages=chat_history,
                 temperature=settings.get('temperature'),
                 stream=True,
-                max_tokens=4000
+                max_tokens=2600
             )
         else:
             model = settings.get('model')
@@ -869,7 +875,7 @@ async def reroll_command(message: Message):
                 messages=chat_history,
                 temperature=settings.get('temperature'),
                 stream=True,
-                max_tokens=4000
+                max_tokens=2600
             )
         response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
     except Exception as e:
