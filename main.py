@@ -1,3 +1,4 @@
+from typing import Callable, Dict, Any, Awaitable
 import tiktoken
 import asyncio
 from database import DB
@@ -19,6 +20,7 @@ import traceback
 from base64 import b64decode
 import time
 import aiosqlite
+from aiogram import BaseMiddleware
 
 load_dotenv()
 
@@ -190,6 +192,46 @@ async def clear_command(message: Message):
         return None
     await db.clear_chat(message.from_user.id)
     await message.answer('Чат очищен')
+
+@dp.message(Command('ban'))
+async def ban_command(message: Message):
+    if message.from_user.id == int(ADMIN_ID):
+        if len(message.text.split()) < 2:
+            await message.answer('Пожалуйста, укажите ID пользователя для бана.')
+            return
+        user_id = int(message.text.split()[1])
+        await db.ban_user(user_id)
+        await message.answer(f'Пользователь с ID {user_id} был забанен!')
+    else:
+        await message.answer('Эта команда доступна только администратору.')
+
+@dp.message(Command('unban'))
+async def unban_command(message: Message):
+    if message.from_user.id == int(ADMIN_ID):
+        if len(message.text.split()) < 2:
+            await message.answer('Пожалуйста, укажите ID пользователя для разбана.')
+            return
+        user_id = int(message.text.split()[1])
+        await db.unban_user(user_id)
+        await message.answer(f'Пользователь с ID {user_id} был разбанен!')
+    else:
+        await message.answer('Эта команда доступна только администратору.')
+
+@dp.message(Command('ban_list'))
+async def ban_list_command(message: Message):
+    if message.from_user.id == int(ADMIN_ID):
+        await message.answer('Список забаненных пользователей:\n' + '\n'.join([str(user_id) for user_id in await db.get_banned_users()]))
+    else:
+        await message.answer('Эта команда доступна только администратору.')
+
+@dp.message(Command('get_user'))
+async def get_user_command(message: Message):
+    if message.from_user.id == int(ADMIN_ID):
+        user = await db.get_user(message.from_user.id)
+        await message.answer(f'Пользователь: ```json\n{orjson.dumps(user, option=orjson.OPT_INDENT_2)}\n```', parse_mode='markdown')
+    else:
+        await message.answer('Эта команда доступна только администратору.')
+
 
 @dp.message(Command('developer_info'))
 async def developer_info_command(message: Message):
@@ -838,7 +880,33 @@ async def reroll_command(message: Message):
     await wait.delete()
     QUEUED_USERS.remove(user_id)
 
+class UserMiddleware(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+        event: Message | CallbackQuery,
+        data: Dict[str, Any]
+    ) -> Any:
+        user_id = event.from_user.id
+        user = await db.get_user(user_id)
+        
+        if not user:
+            await db.add_user(user_id, balance=TEST_BALANCE)
+            user = await db.get_user(user_id)
+        
+        if user['is_banned']:
+            if isinstance(event, Message):
+                await event.answer("Вы заблокированы и не можете использовать бота.")
+            elif isinstance(event, CallbackQuery):
+                await event.answer("Вы заблокированы и не можете использовать бота.", show_alert=True)
+            return
+        
+        data['user'] = user
+        return await handler(event, data)
+
 async def main():
+    dp.message.middleware(UserMiddleware())
+    dp.callback_query.middleware(UserMiddleware())
     await db.create_tables()
     await dp.start_polling(bot)
 

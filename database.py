@@ -28,7 +28,8 @@ class DB:
                     user_id INTEGER PRIMARY KEY,
                     balance REAL DEFAULT 10,
                     chat_history TEXT DEFAULT '[{"role": "system", "content": "You are a helpful assistant."}]',
-                    settings TEXT DEFAULT '{"model": "openai/gpt-4o", "temperature": 0.7, "max_words": 2000, "voice": "male", "scenario": 0, "vision_model": "vis-openai/gpt-4o"}'
+                    settings TEXT DEFAULT '{"model": "openai/gpt-4o", "temperature": 0.7, "max_words": 2000, "voice": "male", "scenario": 0, "vision_model": "vis-openai/gpt-4o"}',
+                    is_banned BOOLEAN DEFAULT FALSE
                 )
             ''')
             await db.execute('''
@@ -65,7 +66,8 @@ class DB:
                 'user_id': row[0],
                 'balance': row[1],
                 'chat_history': orjson.loads(row[2]),
-                'settings': orjson.loads(row[3])
+                'settings': orjson.loads(row[3]),
+                'is_banned': row[4]
             } if row else None
     
     async def add_user(self, user_id: int, balance=10):
@@ -133,8 +135,23 @@ class DB:
     
     async def update_user(self, user_id: int, data: dict):
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute('UPDATE users SET balance = ?, chat_history = ?, settings = ? WHERE user_id = ?',
-                             (data['balance'], orjson.dumps(data['chat_history']), orjson.dumps(data['settings']), user_id))
+            query = 'UPDATE users SET '
+            params = []
+            if 'balance' in data:
+                query += 'balance = ?, '
+                params.append(data['balance'])
+            if 'chat_history' in data:
+                query += 'chat_history = ?, '
+                params.append(orjson.dumps(data['chat_history']))
+            if 'settings' in data:
+                query += 'settings = ?, '
+                params.append(orjson.dumps(data['settings']))
+            if 'is_banned' in data:
+                query += 'is_banned = ?, '
+                params.append(data['is_banned'])
+            query = query.rstrip(', ') + ' WHERE user_id = ?'
+            params.append(user_id)
+            await db.execute(query, params)
             await db.commit()
     
     async def decrease_balance(self, user_id: int, amount: float):
@@ -245,4 +262,14 @@ class DB:
     async def restore_balance(self, user_id: int):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('UPDATE users SET balance = 10 WHERE user_id = ?', (user_id,))
+            await db.commit()
+    
+    async def ban_user(self, user_id: int):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('UPDATE users SET is_banned = TRUE WHERE user_id = ?', (user_id,))
+            await db.commit()
+    
+    async def unban_user(self, user_id: int):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('UPDATE users SET is_banned = FALSE WHERE user_id = ?', (user_id,))
             await db.commit()
