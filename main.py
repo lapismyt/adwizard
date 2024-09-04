@@ -334,14 +334,14 @@ async def image_command(message: Message, state: FSMContext):
         return None
     await db.decrease_balance(message.from_user.id, 1.8)
     try:
-        await db.increase_total_image_requests(message.from_user.id)
-    response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
+        response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
         image_b64_json = response.data[0].b64_json
         image = b64decode(image_b64_json)
         await message.answer_photo(BufferedInputFile(image, filename=f'image_{time.time()}.png'))
     except Exception as e:
         await message.answer('Ошибка при генерации изображения!')
         traceback.print_exc()
+    await db.increase_total_image_requests(message.from_user.id)
     QUEUED_USERS.remove(message.from_user.id)
     await wait.delete()
 
