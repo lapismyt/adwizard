@@ -530,8 +530,8 @@ async def model_choose_callback(message: Message, state: FSMContext):
         return None
     models_list = await get_models_list()
     exists = False
-    for model in models_list:
-        if model['id'] == model:
+    for mdl in models_list:
+        if mdl['id'] == model:
             exists = True
     if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or not exists:
         await message.answer(text='Такой модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
