@@ -199,7 +199,8 @@ async def count_images_in_chat(chat_history):
     return image_count
 
 @dp.message(Command('start', 'menu'))
-async def start_command(message: Message):
+async def start_command(message: Message, state: FSMContext):
+    await state.clear()
     user_id = message.from_user.id
     user = await db.get_user(user_id)
     if not user:
@@ -217,7 +218,8 @@ async def start_command(message: Message):
     await message.answer(f'Привет!\nТвой баланс: {round(user["balance"], 2)} кредитов', reply_markup=keyboard)
 
 @dp.message(Command('clear'))
-async def clear_command(message: Message):
+async def clear_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id in QUEUED_USERS:
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
@@ -225,7 +227,8 @@ async def clear_command(message: Message):
     await message.answer('Чат очищен')
 
 @dp.message(Command('ban'))
-async def ban_command(message: Message):
+async def ban_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id == int(ADMIN_ID):
         if len(message.text.split()) < 2:
             await message.answer('Пожалуйста, укажите ID пользователя для бана.')
@@ -237,7 +240,8 @@ async def ban_command(message: Message):
         await message.answer('Эта команда доступна только администратору.')
 
 @dp.message(Command('unban'))
-async def unban_command(message: Message):
+async def unban_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id == int(ADMIN_ID):
         if len(message.text.split()) < 2:
             await message.answer('Пожалуйста, укажите ID пользователя для разбана.')
@@ -249,14 +253,16 @@ async def unban_command(message: Message):
         await message.answer('Эта команда доступна только администратору.')
 
 @dp.message(Command('ban_list'))
-async def ban_list_command(message: Message):
+async def ban_list_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id == int(ADMIN_ID):
         await message.answer('Список забаненных пользователей:\n' + '\n'.join([str(user_id) for user_id in await db.get_banned_users()]))
     else:
         await message.answer('Эта команда доступна только администратору.')
 
 @dp.message(Command('get_user'))
-async def get_user_command(message: Message):
+async def get_user_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id == int(ADMIN_ID):
         user = await db.get_user(message.from_user.id)
         await message.answer(f'Пользователь: ```json\n{orjson.dumps(user, option=orjson.OPT_INDENT_2)}\n```', parse_mode='markdown')
@@ -265,23 +271,28 @@ async def get_user_command(message: Message):
 
 
 @dp.message(Command('developer_info'))
-async def developer_info_command(message: Message):
+async def developer_info_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(f'Информация о разработчике:\n{DEVELOPER_INFO}')
 
 @dp.message(Command('terms'))
-async def terms_of_use_command(message: Message):
+async def terms_of_use_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(f'Условия использования:\n{TERMS_OF_USE}')
 
 @dp.message(Command('privacy_policy'))
-async def privacy_policy_command(message: Message):
+async def privacy_policy_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(f'Политика конфиденциальности:\n{PRIVACY_POLICY}')
 
 @dp.message(Command('help'))
-async def help_command(message: Message):
+async def help_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(f'Руководство:\n{GUIDE}')
 
 @dp.message(Command('stats'))
-async def stats_command(message: Message):
+async def stats_command(message: Message, state: FSMContext):
+    await state.clear()
     user_stats = await db.get_user_stats(message.from_user.id)
     total_users = await db.get_total_users()
     total_stats = await db.get_total_stats()
@@ -304,7 +315,8 @@ async def stats_command(message: Message):
     parse_mode='HTML')
 
 @dp.message(Command('image'))
-async def image_command(message: Message):
+async def image_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id in QUEUED_USERS:
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
@@ -327,7 +339,8 @@ async def image_command(message: Message):
     await wait.delete()
 
 @dp.message(Command('cancel'))
-async def cancel_command(message: Message):
+async def cancel_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id in QUEUED_USERS:
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
@@ -342,7 +355,8 @@ async def cancel_command(message: Message):
         await message.answer('Недостаточно сообщений для удаления.')
 
 @dp.message(Command('reroll'))
-async def reroll_command(message: Message):
+async def reroll_command(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.id in QUEUED_USERS:
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
@@ -401,7 +415,8 @@ async def reroll_command(message: Message):
 
 
 @dp.callback_query(F.data == 'settings')
-async def settings_callback(callback: CallbackQuery):
+async def settings_callback(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
     settings = await db.get_settings(int(callback.from_user.id))
     scenario = await db.get_scenario(settings['scenario'])
     keyboard = InlineKeyboardMarkup(
@@ -464,8 +479,11 @@ async def model_callback(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text('Напишите название модели:')
         await state.set_state(Settings.model)
         return None
-    model_type = callback.data.split('_')[1]
-    model = MODELS['recommended']['chat'][model_type]
+    model_type = callback.data.split('_')[1].split(':')[0]
+    if model_type == 'custom':
+        model = callback.data.split('_')[1].split(':')[1]
+    else:
+        model = MODELS['recommended']['chat'][model_type]
     await db.change_model(callback.from_user.id, model)
     await callback.answer(f'Модель установлена: {model}')
 
@@ -513,7 +531,7 @@ async def model_choose_callback(message: Message, state: FSMContext):
     if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or (model not in models_list):
         await message.answer(text='Такой модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text='openai/gpt-4o-mini', callback_data='model_cheap')]
+                [InlineKeyboardButton(text='openai/gpt-4o-mini', callback_data='model_custom:openai/gpt-4o-mini')]
             ]
         ),
         parse_mode='markdown')
