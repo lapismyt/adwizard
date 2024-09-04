@@ -260,7 +260,7 @@ async def stats_command(message: Message):
         f'Потраченные кредиты: {user_stats["spent_credits"]}\n'
         f'Всего запросов чата: {user_stats["total_chat_requests"]}\n'
         f'Всего запросов изображений: {user_stats["total_image_requests"]}\n'
-        f'Всего запросов аудио: ~{user_stats["total_audio_requests"]}~ скоро\n'
+        f'Всего запросов аудио: <s>{user_stats["total_audio_requests"]}</s> скоро\n'
         f'Всего запросов видения: {user_stats["total_vision_requests"]}\n\n'
         f'Общая статистика:\n'
         f'Всего пользователей: {total_users}\n'
@@ -268,9 +268,9 @@ async def stats_command(message: Message):
         f'Суммарные потраченные кредиты: {total_stats["spent_credits"]}\n'
         f'Суммарные запросы чата: {total_stats["total_chat_requests"]}\n'
         f'Суммарные запросы изображений: {total_stats["total_image_requests"]}\n'
-        f'Суммарные запросы аудио: ~{total_stats["total_audio_requests"]}~ скоро\n'
+        f'Суммарные запросы аудио: <s>{total_stats["total_audio_requests"]}</s> скоро\n'
         f'Суммарные запросы видения: {total_stats["total_vision_requests"]}',
-    parse_mode='MarkdownV2')
+    parse_mode='HTML')
 
 @dp.message(Command('image'))
 async def image_command(message: Message):
