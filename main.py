@@ -132,7 +132,7 @@ def count_tokens(text, model):
     encoder = get_tiktoken_encoder(model)
     return len(encoder.encode(text))
 
-async def stream_response(message: Message, response_stream, model, edit_interval=1.5):
+async def stream_response(message: Message, response_stream, model, edit_interval=0.8):
     full_response = ""
     last_edit_time = time.time()
     sent_message = None
@@ -153,17 +153,20 @@ async def stream_response(message: Message, response_stream, model, edit_interva
                 else:
                     sent_message = await message.answer(full_response[:4096])
                 last_edit_time = current_time
-    if sent_message:
-        if sent_message.text != full_response[:4096]:
+    try:
+        if sent_message:
+            if sent_message.text != full_response[:4096]:
+                try:
+                    await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
+                except TelegramBadRequest:
+                    await sent_message.edit_text(full_response[:4096])
+        else:
             try:
-                await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
+                await message.answer(full_response[:4096], parse_mode='markdown')
             except TelegramBadRequest:
-                await sent_message.edit_text(full_response[:4096])
-    else:
-        try:
-            await message.answer(full_response[:4096], parse_mode='markdown')
-        except TelegramBadRequest:
-            await message.answer(full_response[:4096])
+                await message.answer(full_response[:4096])
+    except TelegramBadRequest:
+        pass
     return full_response, sent_message, total_tokens
 
 async def count_images_in_chat(chat_history):
