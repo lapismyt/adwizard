@@ -701,6 +701,17 @@ async def answer_to_message(message: Message):
         return None
     
     chat_history = user_data['chat_history']
+    max_words = settings.get('max_words')
+    total_words = sum(len(msg['content'].split()) if isinstance(msg['content'], str) else sum(len(cont['text'].split()) for cont in msg['content'] if cont['type'] == 'text') for msg in chat_history if msg['role'] != 'system')
+    while total_words > max_words:
+        if chat_history[0]['role'] != 'system':
+            if isinstance(chat_history[0]['content'], str):
+                total_words -= len(chat_history[0]['content'].split())
+            else:
+                total_words -= sum(len(cont['text'].split()) for cont in chat_history[0]['content'] if cont['type'] == 'text')
+            chat_history.pop(0)
+        else:
+            chat_history.pop(0)
     chat_history.append({"role": "user", "content": message.text})
     try:
         contains_image = False
@@ -731,18 +742,6 @@ async def answer_to_message(message: Message):
         QUEUED_USERS.remove(message.from_user.id)
         return None
     chat_history.append({'role': 'assistant', 'content': response_text})
-    max_words = settings.get('max_words')
-    total_words = sum(len(msg['content'].split()) if isinstance(msg['content'], str) else sum(len(cont['text'].split()) for cont in msg['content'] if cont['type'] == 'text') for msg in chat_history if msg['role'] != 'system')
-    
-    while total_words > max_words:
-        if chat_history[0]['role'] != 'system':
-            if isinstance(chat_history[0]['content'], str):
-                total_words -= len(chat_history[0]['content'].split())
-            else:
-                total_words -= sum(len(cont['text'].split()) for cont in chat_history[0]['content'] if cont['type'] == 'text')
-            chat_history.pop(0)
-        else:
-            chat_history.pop(0)
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
     try:
         model_pricing = await get_model_pricing(model)
@@ -787,17 +786,17 @@ async def answer_to_image(message: Message):
     image_url = f'https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}'
     model = settings.get('vision_model')
     try:
-        response_stream = await openai_client.chat.completions.create(
+        response = await openai_client.chat.completions.create(
             model=model,
             messages=user_data['chat_history'] + [{'role': 'user', 'content': [
                 {'type': 'text', 'text': message.caption},
                 {'type': 'image_url', 'image_url': {'url': image_url}}
             ]}],
             temperature=settings.get('temperature'),
-            stream=True,
             max_tokens=2600
         )
-        response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
+        response_text = response.choices[0].message.content
+        completion_tokens = response.usage.completion_tokens
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
@@ -824,6 +823,7 @@ async def answer_to_image(message: Message):
     ]})
     chat_history.append({'role': "assistant", 'content': response_text})
     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
+    await message.answer(response_text[:4096])
     await wait.delete()
     QUEUED_USERS.remove(message.from_user.id)
 
