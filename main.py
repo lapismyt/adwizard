@@ -155,9 +155,9 @@ async def stream_response(message: Message, response_stream, model, edit_interva
                 last_edit_time = current_time
     if sent_message:
         if sent_message.text != full_response[:4096]:
-            await sent_message.edit_text(full_response[:4096])
+            await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
     else:
-        await message.answer(full_response[:4096])
+        await message.answer(full_response[:4096], parse_mode='markdown')
     return full_response, sent_message, total_tokens
 
 async def count_images_in_chat(chat_history):
