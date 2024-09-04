@@ -331,10 +331,14 @@ async def image_command(message: Message, state: FSMContext):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     await db.decrease_balance(message.from_user.id, 1.8)
-    response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
-    image_b64_json = response.data[0].b64_json
-    image = b64decode(image_b64_json)
-    await message.answer_photo(BufferedInputFile(image, filename=f'image_{time.time()}.png'))
+    try:
+        response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
+        image_b64_json = response.data[0].b64_json
+        image = b64decode(image_b64_json)
+        await message.answer_photo(BufferedInputFile(image, filename=f'image_{time.time()}.png'))
+    except Exception as e:
+        await message.answer('Ошибка при генерации изображения!')
+        traceback.print_exc()
     QUEUED_USERS.remove(message.from_user.id)
     await wait.delete()
 
@@ -699,6 +703,143 @@ async def process_broadcast_message(message: Message, state: FSMContext):
     await message.answer(f'Рассылка завершена. Отправлено {sent_count} из {len(users)} пользователей.')
     await state.clear()
 
+@dp.message(Command('reroll'))
+async def reroll_command(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    QUEUED_USERS.append(message.from_user.id)
+    wait = await message.answer(text='Подождите немного...')
+    user_id = message.from_user.id
+    settings = await db.get_settings(user_id)
+    user_data = await db.get_user(user_id)
+    
+    # Подсчет количества изображений в чате
+    image_count = await count_images_in_chat(user_data['chat_history'])
+    image_cost = image_count * 1.5
+    
+    if user_data['balance'] < image_cost and user_id != int(ADMIN_ID):
+        await message.answer(f'Недостаточно кредитов на балансе для отправки запроса.\nНеобходимо {image_cost} кредитов за изображения в чате.\nКупите кредиты в разделе "Пополнить баланс".')
+        QUEUED_USERS.remove(user_id)
+        return None
+    
+    chat_history = user_data['chat_history']
+    if len(chat_history) < 2 or chat_history[-1]['role'] != 'assistant':
+        await message.answer('Нет предыдущего ответа для повторной генерации.')
+        QUEUED_USERS.remove(user_id)
+        return None
+    chat_history.pop(-1)
+    
+    # Проверяем, содержит ли последнее сообщение изображение
+    last_message = chat_history[-1]
+    use_vision_model = False
+    if isinstance(last_message['content'], list):
+        for content in last_message['content']:
+            if content['type'] == 'image_url':
+                use_vision_model = True
+                break
+    
+    try:
+        if use_vision_model:
+            model = settings.get('vision_model')
+            response = await openai_client.chat.completions.create(
+                model=model,
+                messages=chat_history,
+                temperature=settings.get('temperature'),
+                max_tokens=2600
+            )
+            response_text = response.choices[0].message.content
+            completion_tokens = response.usage.completion_tokens
+            await message.answer(response_text[:4096])
+        else:
+            model = settings.get('model')
+            response_stream = await openai_client.chat.completions.create(
+                model=model,
+                messages=chat_history,
+                temperature=settings.get('temperature'),
+                stream=True,
+                max_tokens=2600
+            )
+            response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
+    except Exception as e:
+        await message.answer('Ошибка!')
+        traceback.print_exc()
+        QUEUED_USERS.remove(user_id)
+        return None
+    
+    chat_history.append({'role': 'assistant', 'content': response_text})
+    max_words = settings.get('max_words')
+    total_words = sum(len(msg['content'].split()) if isinstance(msg['content'], str) else sum(len(cont['text'].split()) for cont in msg['content'] if cont['type'] == 'text') for msg in chat_history if msg['role'] != 'system')
+    
+    while total_words > max_words:
+        if chat_history[0]['role'] != 'system':
+            if isinstance(chat_history[0]['content'], str):
+                total_words -= len(chat_history[0]['content'].split())
+            else:
+                total_words -= sum(len(cont['text'].split()) for cont in chat_history[0]['content'] if cont['type'] == 'text')
+            chat_history.pop(0)
+        else:
+            chat_history.pop(0)
+    try:
+        model_pricing = await get_model_pricing(model)
+    except:
+        traceback.print_exc()
+        QUEUED_USERS.remove(user_id)
+        await message.answer('Ошибка!')
+        return None
+    
+    prompt_tokens = sum(count_tokens_for_message(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
+    spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
+    spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
+    spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
+    
+    await db.decrease_balance(user_id, spent_credits)
+    await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
+    await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
+    await wait.delete()
+    QUEUED_USERS.remove(user_id)
+
+@dp.message(Command('music'))
+async def music_command(message: Message):
+    if message.from_user.id in QUEUED_USERS:
+        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
+        return None
+    QUEUED_USERS.append(message.from_user.id)
+    if not message.text.removeprefix('/music').strip() or not message.text.split()[1].isdigit() or len(message.text.split()) < 2 or (not 300 >= int(message.text.split()[1]) >= 10):
+        await message.answer('Используйте команду в формате: /music <длительность в секундах> <описание>')
+        QUEUED_USERS.remove(message.from_user.id)
+        return None
+    user_id = message.from_user.id
+    user_data = await db.get_user(user_id)
+    duration = int(message.text.split()[1])
+    description = message.text.removeprefix(f'/music {duration} ').strip()
+    if user_data['balance'] < 5 and user_id != int(ADMIN_ID):
+        await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nНеобходимо 5 кредитов для генерации музыки.\nКупите кредиты в разделе "Пополнить баланс".')
+        QUEUED_USERS.remove(message.from_user.id)
+        return None
+    wait = await message.answer(text='Подождите немного...')
+    try:
+        response = await openai_client.audio.speech.create(
+            extra_body={
+                "seconds_total": duration
+            },
+            model='tta-stable/stable-audio',
+            voice='nova',
+            input=description,
+            response_format='wav',
+            timeout=40
+        )
+        await message.answer_audio(BufferedInputFile(response.content, filename=f'audio-{int(time.time())}.wav'))
+    except Exception as e:
+        await message.answer('Ошибка!')
+        traceback.print_exc()
+        QUEUED_USERS.remove(message.from_user.id)
+        return None
+    await db.decrease_balance(user_id, 5)
+    await db.increase_total_audio_requests(user_id)
+    QUEUED_USERS.remove(message.from_user.id)
+    await wait.delete()
+
 @dp.message(F.text)
 async def answer_to_message(message: Message):
     if message.from_user.id in QUEUED_USERS:
@@ -852,102 +993,6 @@ async def answer_to_image(message: Message):
     await message.answer(response_text[:4096])
     await wait.delete()
     QUEUED_USERS.remove(message.from_user.id)
-
-@dp.message(Command('reroll'))
-async def reroll_command(message: Message):
-    if message.from_user.id in QUEUED_USERS:
-        await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
-        return None
-    QUEUED_USERS.append(message.from_user.id)
-    wait = await message.answer(text='Подождите немного...')
-    user_id = message.from_user.id
-    settings = await db.get_settings(user_id)
-    user_data = await db.get_user(user_id)
-    
-    # Подсчет количества изображений в чате
-    image_count = await count_images_in_chat(user_data['chat_history'])
-    image_cost = image_count * 1.5
-    
-    if user_data['balance'] < image_cost and user_id != int(ADMIN_ID):
-        await message.answer(f'Недостаточно кредитов на балансе для отправки запроса.\nНеобходимо {image_cost} кредитов за изображения в чате.\nКупите кредиты в разделе "Пополнить баланс".')
-        QUEUED_USERS.remove(user_id)
-        return None
-    
-    chat_history = user_data['chat_history']
-    if len(chat_history) < 2 or chat_history[-1]['role'] != 'assistant':
-        await message.answer('Нет предыдущего ответа для повторной генерации.')
-        QUEUED_USERS.remove(user_id)
-        return None
-    chat_history.pop(-1)
-    
-    # Проверяем, содержит ли последнее сообщение изображение
-    last_message = chat_history[-1]
-    use_vision_model = False
-    if isinstance(last_message['content'], list):
-        for content in last_message['content']:
-            if content['type'] == 'image_url':
-                use_vision_model = True
-                break
-    
-    try:
-        if use_vision_model:
-            model = settings.get('vision_model')
-            response = await openai_client.chat.completions.create(
-                model=model,
-                messages=chat_history,
-                temperature=settings.get('temperature'),
-                max_tokens=2600
-            )
-            response_text = response.choices[0].message.content
-            completion_tokens = response.usage.completion_tokens
-            await message.answer(response_text[:4096])
-        else:
-            model = settings.get('model')
-            response_stream = await openai_client.chat.completions.create(
-                model=model,
-                messages=chat_history,
-                temperature=settings.get('temperature'),
-                stream=True,
-                max_tokens=2600
-            )
-            response_text, sent_message, completion_tokens = await stream_response(message, response_stream, model)
-    except Exception as e:
-        await message.answer('Ошибка!')
-        traceback.print_exc()
-        QUEUED_USERS.remove(user_id)
-        return None
-    
-    chat_history.append({'role': 'assistant', 'content': response_text})
-    max_words = settings.get('max_words')
-    total_words = sum(len(msg['content'].split()) if isinstance(msg['content'], str) else sum(len(cont['text'].split()) for cont in msg['content'] if cont['type'] == 'text') for msg in chat_history if msg['role'] != 'system')
-    
-    while total_words > max_words:
-        if chat_history[0]['role'] != 'system':
-            if isinstance(chat_history[0]['content'], str):
-                total_words -= len(chat_history[0]['content'].split())
-            else:
-                total_words -= sum(len(cont['text'].split()) for cont in chat_history[0]['content'] if cont['type'] == 'text')
-            chat_history.pop(0)
-        else:
-            chat_history.pop(0)
-    try:
-        model_pricing = await get_model_pricing(model)
-    except:
-        traceback.print_exc()
-        QUEUED_USERS.remove(user_id)
-        await message.answer('Ошибка!')
-        return None
-    
-    prompt_tokens = sum(count_tokens_for_message(msg['content'], model) for msg in chat_history if msg['role'] != 'assistant')
-    spent_prompt_credits = prompt_tokens * float(model_pricing['prompt']) / 1000
-    spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
-    spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
-    
-    await db.decrease_balance(user_id, spent_credits)
-    await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
-    await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'], 'settings': settings})
-    await wait.delete()
-    QUEUED_USERS.remove(user_id)
 
 class UserMiddleware(BaseMiddleware):
     async def __call__(
