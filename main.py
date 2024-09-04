@@ -249,6 +249,32 @@ async def privacy_policy_command(message: Message):
 async def help_command(message: Message):
     await message.answer(f'Руководство:\n{GUIDE}')
 
+@dp.message(Command('stats'))
+async def stats_command(message: Message):
+    # Отобразить общую статистику и статистику пользователя
+    # Личная статистика: всё из таблицы stats
+    # Общая статистика: количество пользователей + суммы всех значений из таблицы stats
+    user_stats = await db.get_user_stats(message.from_user.id)
+    total_users = await db.get_total_users()
+    total_stats = await db.get_total_stats()
+    await message.answer(
+        f'Ваша статистика:\n'
+        f'Сгенерированные токены: {user_stats["generated_tokens"]}\n'
+        f'Потраченные кредиты: {user_stats["spent_credits"]}\n'
+        f'Всего запросов чата: {user_stats["total_chat_requests"]}\n'
+        f'Всего запросов изображений: {user_stats["total_image_requests"]}\n'
+        f'Всего запросов аудио: ~{user_stats["total_audio_requests"]}~ скоро\n'
+        f'Всего запросов видения: {user_stats["total_vision_requests"]}\n\n'
+        f'Общая статистика:\n'
+        f'Всего пользователей: {total_users}\n'
+        f'Суммарные сгенерированные токены: {total_stats["generated_tokens"]}\n'
+        f'Суммарные потраченные кредиты: {total_stats["spent_credits"]}\n'
+        f'Суммарные запросы чата: {total_stats["total_chat_requests"]}\n'
+        f'Суммарные запросы изображений: {total_stats["total_image_requests"]}\n'
+        f'Суммарные запросы аудио: ~{total_stats["total_audio_requests"]}~ скоро\n'
+        f'Суммарные запросы видения: {total_stats["total_vision_requests"]}',
+    parse_mode='markdown')
+
 @dp.message(Command('image'))
 async def image_command(message: Message):
     if message.from_user.id in QUEUED_USERS:

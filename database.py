@@ -273,3 +273,35 @@ class DB:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('UPDATE users SET is_banned = FALSE WHERE user_id = ?', (user_id,))
             await db.commit()
+    
+    async def get_user_stats(self, user_id: int) -> dict:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('SELECT * FROM stats WHERE user_id = ?', (user_id,))
+            row = await cursor.fetchone()
+            return {
+                'generated_tokens': row[1],
+                'spent_credits': row[2],
+                'total_chat_requests': row[3],
+                'total_image_requests': row[4],
+                'total_audio_requests': row[5],
+                'total_vision_requests': row[6]
+            } if row else None
+    
+    async def get_total_users(self) -> int:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('SELECT COUNT(*) FROM users')
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+    
+    async def get_total_stats(self) -> dict:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('SELECT SUM(generated_tokens), SUM(spent_credits), SUM(total_chat_requests), SUM(total_image_requests), SUM(total_audio_requests), SUM(total_vision_requests) FROM stats')
+            row = await cursor.fetchone()
+            return {
+                'generated_tokens': row[0],
+                'spent_credits': row[1],
+                'total_chat_requests': row[2],
+                'total_image_requests': row[3],
+                'total_audio_requests': row[4],
+                'total_vision_requests': row[5]
+            } if row else None
