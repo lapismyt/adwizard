@@ -167,6 +167,16 @@ class DB:
             await db.execute('UPDATE stats SET generated_tokens = generated_tokens + ? WHERE user_id = ?', (tokens, user_id))
             await db.commit()
 
+    async def increase_total_image_requests(self, user_id: int):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('UPDATE stats SET total_image_requests = total_image_requests + 1 WHERE user_id = ?', (user_id,))
+            await db.commit()
+
+    async def increase_total_vision_requests(self, user_id: int):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('UPDATE stats SET total_vision_requests = total_image_requests + 1 WHERE user_id = ?', (user_id,))
+            await db.commit()
+
     async def increase_balance(self, user_id: int, amount: float):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('UPDATE users SET balance = balance + ? WHERE user_id = ?', (amount, user_id))
