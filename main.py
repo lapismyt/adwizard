@@ -812,14 +812,13 @@ async def music_command(message: Message):
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
     QUEUED_USERS.append(message.from_user.id)
-    if not message.text.removeprefix('/music').strip() or not message.text.split()[1].isdigit() or len(message.text.split()) < 2 or (not 40 >= int(message.text.split()[1]) >= 10):
-        await message.answer('Используйте команду в формате: /music <длительность в секундах> <описание>')
+    if not message.text.removeprefix('/music').strip():
+        await message.answer('Используйте команду в формате: /music <описание>')
         QUEUED_USERS.remove(message.from_user.id)
         return None
     user_id = message.from_user.id
     user_data = await db.get_user(user_id)
-    duration = int(message.text.split()[1])
-    description = message.text.removeprefix(f'/music {duration} ').strip()
+    description = message.text.removeprefix(f'/music ').strip()
     if user_data['balance'] < 5 and user_id != int(ADMIN_ID):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nНеобходимо 5 кредитов для генерации музыки.\nКупите кредиты в разделе "Пополнить баланс".')
         QUEUED_USERS.remove(message.from_user.id)
@@ -828,7 +827,7 @@ async def music_command(message: Message):
     try:
         response = await openai_client.audio.speech.create(
             extra_body={
-                "seconds_total": duration
+                'seconds_total': 40
             },
             model='tta-stable/stable-audio',
             voice='nova',
@@ -836,7 +835,10 @@ async def music_command(message: Message):
             response_format='wav',
             timeout=40
         )
-        await message.answer_audio(BufferedInputFile(response.content, filename=f'audio-{int(time.time())}.wav'))
+        filename = f'audio-{int(time.time() * 1000)}.wav'
+        with open(f'songs/{filename}', 'wb') as f:
+            f.write(response.content)
+        await message.answer_audio(BufferedInputFile(response.content, filename=filename))
     except Exception as e:
         await message.answer('Ошибка!')
         traceback.print_exc()
