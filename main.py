@@ -21,7 +21,7 @@ from base64 import b64decode
 import time
 import aiosqlite
 from aiogram import BaseMiddleware
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -132,7 +132,7 @@ def count_tokens(text, model):
     encoder = get_tiktoken_encoder(model)
     return len(encoder.encode(text))
 
-async def stream_response(message: Message, response_stream, model, edit_interval=0.8):
+async def stream_response(message: Message, response_stream, model, edit_interval=0.5):
     full_response = ""
     last_edit_time = time.time()
     sent_message = None
@@ -148,8 +148,10 @@ async def stream_response(message: Message, response_stream, model, edit_interva
                     try:
                         if sent_message.text != full_response[:4096]:
                             await sent_message.edit_text(full_response[:4096])
-                    except:
+                    except TelegramBadRequest:
                         pass
+                    except TelegramRetryAfter as e:
+                        last_edit_time = current_time + e.retry_after
                 else:
                     sent_message = await message.answer(full_response[:4096])
                 last_edit_time = current_time
