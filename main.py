@@ -298,20 +298,20 @@ async def stats_command(message: Message, state: FSMContext):
     total_stats = await db.get_total_stats()
     await message.answer(
         f'Ваша статистика:\n'
-        f'Сгенерированные токены: {user_stats["generated_tokens"]}\n'
+        f'Сгенерированные токены: {round(user_stats["generated_tokens"], 2)}\n'
         f'Потраченные кредиты: {user_stats["spent_credits"]}\n'
         f'Всего запросов чата: {user_stats["total_chat_requests"]}\n'
         f'Всего запросов изображений: {user_stats["total_image_requests"]}\n'
-        f'Всего запросов аудио:  {user_stats["total_audio_requests"]} скоро\n'
+        f'Всего запросов аудио: {user_stats["total_audio_requests"]}\n'
         f'Всего запросов видения: {user_stats["total_vision_requests"]}\n\n'
         f'Общая статистика:\n'
-        f'Всего пользователей: {total_users}\n'
-        f'Суммарные сгенерированные токены: {total_stats["generated_tokens"]}\n'
-        f'Суммарные потраченные кредиты: {total_stats["spent_credits"]}\n'
+        f'Суммарные сгенерированные токены: {round(total_stats["generated_tokens"], 2)}\n'
+        f'Суммарные потраченные кредиты: {round(total_stats["spent_credits"], 2)}\n'
         f'Суммарные запросы чата: {total_stats["total_chat_requests"]}\n'
         f'Суммарные запросы изображений: {total_stats["total_image_requests"]}\n'
-        f'Суммарные запросы аудио:  {total_stats["total_audio_requests"]} скоро\n'
-        f'Суммарные запросы видения: {total_stats["total_vision_requests"]}',
+        f'Суммарные запросы аудио: {total_stats["total_audio_requests"]}\n'
+        f'Суммарные запросы видения: {total_stats["total_vision_requests"]}\n\n'
+        f'Всего пользователей: {total_users}',
     parse_mode='HTML')
 
 @dp.message(Command('image'))
@@ -812,7 +812,7 @@ async def music_command(message: Message):
         await message.answer('Сначала дождитесь выполнения предыдущего запроса.')
         return None
     QUEUED_USERS.append(message.from_user.id)
-    if not message.text.removeprefix('/music').strip() or not message.text.split()[1].isdigit() or len(message.text.split()) < 2 or (not 300 >= int(message.text.split()[1]) >= 10):
+    if not message.text.removeprefix('/music').strip() or not message.text.split()[1].isdigit() or len(message.text.split()) < 2 or (not 40 >= int(message.text.split()[1]) >= 10):
         await message.answer('Используйте команду в формате: /music <длительность в секундах> <описание>')
         QUEUED_USERS.remove(message.from_user.id)
         return None
