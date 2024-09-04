@@ -326,6 +326,8 @@ async def image_command(message: Message, state: FSMContext):
     if not prompt:
         await message.answer('Пожалуйста, введите описание изображения.')
         return None
+        QUEUED_USERS.remove(message.from_user.id)
+        await wait.delete()
     user_data = await db.get_user(message.from_user.id)
     if user_data['balance'] <= 1.8 and message.from_user.id != int(ADMIN_ID):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
