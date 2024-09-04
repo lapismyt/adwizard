@@ -101,6 +101,10 @@ async def get_models_list():
     return models_list
 
 async def get_model_pricing(model_name):
+    if model_name == 'perplexity/latest-small-online':
+        return await get_model_pricing('perplexity/llama-3.1-sonar-small-128k-online')
+    if model_name == 'perplexity/latest-large-online':
+        return await get_model_pricing('perplexity/llama-3.1-sonar-large-128k-online')
     if model_name in model_pricing_cache:
         return model_pricing_cache[model_name]
     models_list = await get_models_list()
