@@ -530,7 +530,7 @@ async def model_choose_callback(message: Message, state: FSMContext):
         return None
     models_list = await get_models_list()
     exists = False
-    for model in model_list:
+    for model in models_list:
         if model['id'] == model:
             exists = True
     if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or not exists:
