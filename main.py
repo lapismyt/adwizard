@@ -333,6 +333,7 @@ async def image_command(message: Message, state: FSMContext):
         await message.answer('Недостаточно кредитов на балансе для отправки запроса.\nКупите кредиты в разделе "Пополнить баланс".')
         return None
     await db.decrease_balance(message.from_user.id, 1.8)
+    await db.increase_total_image_requests(message.from_user.id)
     response = await openai_client.images.generate(model=IMAGE_MODEL, prompt=prompt, n=1, size='1024x1024', response_format='b64_json')
     image_b64_json = response.data[0].b64_json
     image = b64decode(image_b64_json)
@@ -426,7 +427,7 @@ async def settings_callback(callback: CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text=f'Модель: {settings["model"]}', callback_data='model')],
             [InlineKeyboardButton(text=f'Vision-модель: {settings["vision_model"]}', callback_data='vision_model')],
             [InlineKeyboardButton(text=f'Температура: {settings["temperature"]}', callback_data='temperature')],
-            [InlineKeyboardButton(text=f'Максимальное количество слов: {settings["max_words"]}', callback_data='max_words')],
+            [InlineKeyboardButton(text=f'Максимальная длина переписки: {settings["max_words"]}', callback_data='max_words')],
             [InlineKeyboardButton(text=f'Сценарий: {scenario["scenario_name"]}', callback_data='scenario')],
             [InlineKeyboardButton(text='<- Назад', callback_data='start')]
         ]
@@ -847,7 +848,7 @@ async def answer_to_image(message: Message):
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
     await db.decrease_balance(user_id, spent_credits)
-    await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
+    await db.increase_total_image_requests(user_id, prompt_tokens + completion_tokens)
     chat_history = user_data['chat_history']
     chat_history.append({'role': 'user', 'content': [
         {'type': 'text', 'text': message.caption or ''},
