@@ -292,6 +292,11 @@ async def privacy_policy_command(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(f'Политика конфиденциальности:\n{PRIVACY_POLICY}')
 
+@dp.message(Command('paysupport'))
+async def paysupport_command(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(f'По любым вопросам, связанным с платежами, напишите @LapisMYT')
+
 @dp.message(Command('help'))
 async def help_command(message: Message, state: FSMContext):
     await state.clear()
