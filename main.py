@@ -178,7 +178,7 @@ async def stream_response(message: Message, response_stream, model, edit_interva
     try:
         if sent_message:
             if len(full_response[:4096]) < 2:
-                await await sent_message.edit_text('Модель промолчала. Попробуйте выбрать другую модель в настройках.')
+                await sent_message.edit_text('Модель промолчала. Попробуйте выбрать другую модель в настройках.')
             elif sent_message.text != full_response[:4096]:
                 try:
                     await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
