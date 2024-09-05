@@ -171,20 +171,27 @@ async def stream_response(message: Message, response_stream, model, edit_interva
                     except TelegramRetryAfter as e:
                         last_edit_time = current_time + e.retry_after
                 else:
-                    sent_message = await message.answer(full_response[:4096])
+                    if len(full_response[:4096]) < 2:
+                        pass
+                    sent_message = await message.answer('...')
                 last_edit_time = current_time
     try:
         if sent_message:
-            if sent_message.text != full_response[:4096]:
+            if len(full_response[:4096]) < 2:
+                await await sent_message.edit_text('Модель промолчала. Попробуйте выбрать другую модель в настройках.')
+            elif sent_message.text != full_response[:4096]:
                 try:
                     await sent_message.edit_text(full_response[:4096], parse_mode='markdown')
                 except TelegramBadRequest:
                     await sent_message.edit_text(full_response[:4096])
         else:
-            try:
-                await message.answer(full_response[:4096], parse_mode='markdown')
-            except TelegramBadRequest:
-                await message.answer(full_response[:4096])
+            if len(full_response[:4096]) < 2:
+                await message.answer('Модель промолчала. Попробуйте выбрать другую модель в настройках.')
+            else:
+                try:
+                    await message.answer(full_response[:4096], parse_mode='markdown')
+                except TelegramBadRequest:
+                    await message.answer(full_response[:4096])
     except TelegramBadRequest:
         pass
     return full_response, sent_message, total_tokens
