@@ -1003,7 +1003,7 @@ async def answer_to_image(message: Message):
     spent_completion_credits = completion_tokens * float(model_pricing['completion']) / 1000
     spent_credits = spent_prompt_credits + spent_completion_credits + image_cost
     await db.decrease_balance(user_id, spent_credits)
-    await db.increase_total_image_requests(user_id, prompt_tokens + completion_tokens)
+    await db.increase_total_image_requests(user_id)
     chat_history = user_data['chat_history']
     chat_history.append({'role': 'user', 'content': [
         {'type': 'text', 'text': message.caption or ''},
