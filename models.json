@@ -8,6 +8,7 @@
         "openai/gpt-4o",
         "openai/gpt-4o-mini",
         "openai/gpt-4o-latest",
+        "openai/o1-mini",
         "anthropic/claude-instant-v1",
         "anthropic/claude-2",
         "anthropic/claude-3-sonnet",
