@@ -553,7 +553,7 @@ async def model_choose_callback(message: Message, state: FSMContext):
         if mdl['id'] == model:
             exists = True
     # if (model not in MODELS['chat'] and model.removeprefix('translate-') not in MODELS['chat']) or not exists:
-    if not exists:
+    if (not exists) or model.startswith('vision-') or model.startswith('tts-') or model.startswith('emb-') or model.startswith('stt-') or model.startswith('img-'):
         await message.answer(text='Такой модели не существут\nЕсли не знаете какую модель выбрать, могу посоветовать `openai/gpt-4o-mini`', reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text='openai/gpt-4o-mini', callback_data='model_custom:openai/gpt-4o-mini')]
