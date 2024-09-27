@@ -495,7 +495,7 @@ async def start_callback(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith('model_'))
 async def model_callback(callback: CallbackQuery, state: FSMContext):
     if callback.data.split('_')[1] == 'choose':
-        await callback.message.edit_text('Напишите название модели:')
+        await callback.message.edit_text('Напишите название модели (<a href="https://telegra.ph/Spisok-modelej-Adwizard-09-26">список моделей</a>):', parse_mode='HTML', disable_web_page_preview=True)
         await state.set_state(Settings.model)
         return None
     model_type = callback.data.split('_')[1].split(':')[0]
