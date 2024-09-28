@@ -6,3 +6,4 @@ python-dotenv
 orjson
 asyncache
 tiktoken
+ollama
