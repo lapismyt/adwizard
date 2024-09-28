@@ -170,6 +170,7 @@ def count_tokens_for_message(content, model):
 async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     if message.chat.id in queue:
         await message.answer('Сначала дождитесь окончания генерации')
+        print(queue)
         return messages
     if str(message.chat.id) != ADMIN_ID:
         queue.append(message.chat.id)
