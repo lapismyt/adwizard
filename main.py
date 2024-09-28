@@ -195,11 +195,12 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
         if len(full) > 4096:
             full = full[:4095]
         try:
-            try:
-                await message.edit_text(full, parse_mode='markdown')
-            except TelegramBadRequest:
-                traceback.print_exc()
-                await message.edit_text(full)
+            if not message.text == full.strip():
+                try:
+                    await message.edit_text(full, parse_mode='markdown')
+                except TelegramBadRequest:
+                    traceback.print_exc()
+                    await message.edit_text(full)
         except:
             traceback.print_exc()
             await message.answer('Ошибка!')
