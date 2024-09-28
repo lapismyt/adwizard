@@ -186,7 +186,7 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     )
     full = ''
     for chunk in chunks:
-        if full == chunk['message']['content'].strip():
+        if full.strip() == chunk['message']['content'].strip():
             full += chunk['message']['content']
             continue
         full += chunk['message']['content']
