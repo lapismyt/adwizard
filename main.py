@@ -190,6 +190,7 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     )
     full = ''
     new_full = ''
+    last_edit = time.time()
     for chunk in chunks:
         full = new_full
         if new_full.strip() == chunk['message']['content'].strip():
@@ -201,7 +202,8 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
         if new_full.isspace():
             continue
         try:
-            if not full.strip() == new_full.strip():
+            if not full.strip() == new_full.strip() and time.time() > last_edit + 1.5:
+                last_edit = time.time()
                 try:
                     await message.edit_text(new_full, parse_mode='markdown')
                 except TelegramBadRequest:
