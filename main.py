@@ -174,7 +174,10 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     if str(message.chat.id) != ADMIN_ID:
         queue.append(message.chat.id)
     else:
-        queue.insert(0, message.chat.id)
+        if len(queue) == 0:
+            queue.append(message.chat.id)
+        else:
+            queue.insert(1, message.chat.id)
     while queue.index(message.chat.id) > 1:
         await message.edit_text(f'Подождите, пожалуйста. Вы на {queue.index(message.chat.id)} месте в очереди.')
         await asyncio.sleep(2)
