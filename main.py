@@ -185,33 +185,35 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
         stream=True
     )
     full = ''
+    new_full = ''
     for chunk in chunks:
-        if full.strip() == chunk['message']['content'].strip():
-            full += chunk['message']['content']
+        full = new_full
+        if new_full.strip() == chunk['message']['content'].strip():
+            new_full += chunk['message']['content']
             continue
-        full += chunk['message']['content']
-        if full.isspace():
+        new_full += chunk['message']['content']
+        if len(new_full) > 4096:
+            new_full = new_full[:4095]
+        if new_full.isspace():
             continue
-        if len(full) > 4096:
-            full = full[:4095]
         try:
-            if not message.text == full.strip():
+            if not full.strip() == new_full.strip():
                 try:
-                    await message.edit_text(full, parse_mode='markdown')
+                    await message.edit_text(new_full, parse_mode='markdown')
                 except TelegramBadRequest:
                     traceback.print_exc()
-                    await message.edit_text(full)
+                    await message.edit_text(new_full)
         except:
             traceback.print_exc()
             await message.answer('Ошибка!')
             queue.remove(message.chat.id)
             return messages
-        if len(full) >= 4096:
+        if len(new_full) >= 4096:
             break
-    if full.isspace():
+    if new_full.isspace():
         await message.answer('Модель промолчала. Попробуйте снова.')
         return messages
-    messages.append({'role': 'assistant', 'content': full})
+    messages.append({'role': 'assistant', 'content': new_full})
     return messages
 
 
