@@ -216,6 +216,7 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     if new_full.isspace():
         await message.answer('Модель промолчала. Попробуйте снова.')
         return messages
+    queue.remove(message.chat.id)
     messages.append({'role': 'assistant', 'content': new_full})
     return messages
 
