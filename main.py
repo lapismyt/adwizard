@@ -171,8 +171,8 @@ def count_tokens_for_message(content, model):
 async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     print(".")
     lang = single_detection(message.text, os.getenv('DETECTLANGUAGE_API_KEY'))
-    to_en = GoogleTranslator(source=lang, target='en_US')
-    from_en = GoogleTranslator(source='en_US', target=lang)
+    to_en = GoogleTranslator(source=lang, target='en')
+    from_en = GoogleTranslator(source='en', target=lang)
     query = to_en.translate(messages[-1]['content'])
     if message.chat.id in queue:
         await message.answer('Сначала дождитесь окончания генерации')
