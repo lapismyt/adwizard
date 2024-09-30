@@ -24,6 +24,7 @@ import aiosqlite
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 import ollama
+from deep_translator import GoogleTranslator, single_detection
 
 load_dotenv()
 
@@ -169,6 +170,10 @@ def count_tokens_for_message(content, model):
 
 async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     print(".")
+    lang = single_detection(message.text, os.getenv('DETECTLANGUAGE_API_KEY'))
+    to_en = GoogleTranslator(source=lang, target='en')
+    from_en = GoogleTranslator(source='en', target=lang)
+    query = to_en.translate(message.text)
     if message.chat.id in queue:
         await message.answer('Сначала дождитесь окончания генерации')
         print(queue)
@@ -187,8 +192,11 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
             last_index = queue.index(message.chat.id)
         await asyncio.sleep(2)
     await message.edit_text('...')
+    model = os.getenv('OLLAMA_COMPLETION_MODEL') if message.text.startswith("#completion") else os.getenv(
+        'OLLAMA_MODEL')
+    messages[-1] = {'role': 'user', 'content': query.removeprefix('#completion').strip()}
     chunks = ollama.chat(
-        model=os.getenv('OLLAMA_MODEL'),
+        model=model,
         messages=messages,
         stream=True
     )
@@ -210,11 +218,12 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
             if (not full.strip() == new_full.strip()) and (time.time() > last_edit + 3):
                 last_edit = time.time()
                 last_text = new_full
+                translated = from_en.translate(new_full)
                 try:
-                    await message.edit_text(new_full, parse_mode='markdown')
+                    await message.edit_text(translated, parse_mode='markdown')
                 except TelegramBadRequest:
                     traceback.print_exc()
-                    await message.edit_text(new_full)
+                    await message.edit_text(translated)
 
         except:
             traceback.print_exc()
@@ -1105,7 +1114,8 @@ async def answer_to_message(message: Message):
             await message.answer(response_text[:4096])
         else:
             if use_ollama:
-                model = os.getenv('OLLAMA_COMPLETION_MODEL') if message.text.startswith("#completion") else os.getenv('OLLAMA_MODEL')
+                model = os.getenv('OLLAMA_COMPLETION_MODEL') if message.text.startswith("#completion") else os.getenv(
+                    'OLLAMA_MODEL')
                 new = await stream_ollama(wait, chat_history.copy())
                 if new == chat_history:
                     QUEUED_USERS.remove(message.from_user.id)

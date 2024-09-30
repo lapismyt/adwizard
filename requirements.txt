@@ -7,3 +7,4 @@ orjson
 asyncache
 tiktoken
 ollama
+deep_translator
