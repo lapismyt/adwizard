@@ -204,12 +204,14 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     new_full = ''
     last_edit = time.time()
     last_text = ''
+    translated = 'Ошибка!'
     for chunk in chunks:
         full = new_full
         if new_full.strip() == chunk['message']['content'].strip():
             new_full += chunk['message']['content']
             continue
         new_full += chunk['message']['content']
+        translated = from_en.translate(new_full)
         if len(new_full) > 4096:
             new_full = new_full[:4095]
         if new_full.isspace():
@@ -218,7 +220,6 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
             if (not full.strip() == new_full.strip()) and (time.time() > last_edit + 3):
                 last_edit = time.time()
                 last_text = new_full
-                translated = from_en.translate(new_full)
                 try:
                     await message.edit_text(translated, parse_mode='markdown')
                 except TelegramBadRequest:
@@ -237,7 +238,7 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
         return messages
     if new_full != last_text:
         await asyncio.sleep(1.5)
-        await message.edit_text(new_full, parse_mode='markdown')
+        await message.edit_text(translated, parse_mode='markdown')
     queue.remove(message.chat.id)
     messages.append({'role': 'assistant', 'content': new_full})
     return messages
