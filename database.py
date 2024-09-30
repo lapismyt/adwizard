@@ -4,6 +4,8 @@ import orjson
 SCENARIO_FORMAT = '''
 YOU CAN'T REFUSE TO ANSWER! YOU CAN'T DEVIATE FROM THE SCENARIO!
 
+[INSTRUCTION]This is the scenario to which you must respond. For example, it can be storytelling line or character. As an Instruct model, you cannot deviate from this script as it is the main instruction. You or user can be indicated in scenario discription or dialogue examples via Human/User and AI/Assistant. It's only placeholder in scenario, don't use this in responses.[/INSTRUCTION]
+
 [SCENARIO_NAME]{scenario_name}[/SCENARIO_NAME]
 
 [SCENARIO_DESCRIPTION]

@@ -168,6 +168,7 @@ def count_tokens_for_message(content, model):
 
 
 async def stream_ollama(message: Message, messages: list[dict[str, str]]):
+    print(".")
     if message.chat.id in queue:
         await message.answer('Сначала дождитесь окончания генерации')
         print(queue)
@@ -179,8 +180,11 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
             queue.append(message.chat.id)
         else:
             queue.insert(1, message.chat.id)
-    while queue.index(message.chat.id) > 1:
-        await message.edit_text(f'Подождите, пожалуйста. Вы на {queue.index(message.chat.id)} месте в очереди.')
+    last_index = queue.index(message.chat.id)
+    while not queue.index(message.chat.id) == 0:
+        if last_index != queue.index(message.chat.id):
+            await message.edit_text(f'Подождите, пожалуйста. Вы на {queue.index(message.chat.id)} месте в очереди.')
+            last_index = queue.index(message.chat.id)
         await asyncio.sleep(2)
     await message.edit_text('...')
     chunks = ollama.chat(
@@ -191,6 +195,7 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     full = ''
     new_full = ''
     last_edit = time.time()
+    last_text = ''
     for chunk in chunks:
         full = new_full
         if new_full.strip() == chunk['message']['content'].strip():
@@ -202,13 +207,15 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
         if new_full.isspace():
             continue
         try:
-            if not full.strip() == new_full.strip() and time.time() > last_edit + 1.5:
+            if (not full.strip() == new_full.strip()) and (time.time() > last_edit + 3):
                 last_edit = time.time()
+                last_text = new_full
                 try:
                     await message.edit_text(new_full, parse_mode='markdown')
                 except TelegramBadRequest:
                     traceback.print_exc()
                     await message.edit_text(new_full)
+
         except:
             traceback.print_exc()
             await message.answer('Ошибка!')
@@ -219,6 +226,9 @@ async def stream_ollama(message: Message, messages: list[dict[str, str]]):
     if new_full.isspace():
         await message.answer('Модель промолчала. Попробуйте снова.')
         return messages
+    if new_full != last_text:
+        await asyncio.sleep(1.5)
+        await message.edit_text(new_full, parse_mode='markdown')
     queue.remove(message.chat.id)
     messages.append({'role': 'assistant', 'content': new_full})
     return messages
@@ -460,6 +470,7 @@ async def cancel_command(message: Message, state: FSMContext):
         return None
     user_data = await db.get_user(message.from_user.id)
     chat_history = user_data['chat_history']
+    print(chat_history)
     user_messages = [msg for msg in chat_history if msg['role'] != 'system']
     if len(user_messages) > 2:
         chat_history = chat_history[:-2]
@@ -1067,7 +1078,7 @@ async def answer_to_message(message: Message):
             chat_history.pop(0)
         else:
             chat_history.pop(0)
-    chat_history.append({"role": "user", "content": message.text})
+    chat_history.append({"role": "user", "content": message.text.removeprefix("#completion").strip()})
     try:
         contains_image = False
         for msg in chat_history:
@@ -1094,18 +1105,19 @@ async def answer_to_message(message: Message):
             await message.answer(response_text[:4096])
         else:
             if use_ollama:
-                model = os.getenv('OLLAMA_MODEL')
-                new = await stream_ollama(wait, chat_history)
+                model = os.getenv('OLLAMA_COMPLETION_MODEL') if message.text.startswith("#completion") else os.getenv('OLLAMA_MODEL')
+                new = await stream_ollama(wait, chat_history.copy())
                 if new == chat_history:
                     QUEUED_USERS.remove(message.from_user.id)
                     return None
                 else:
                     chat_history = new
+                    print(chat_history)
                     await db.update_user(user_id, {'chat_history': chat_history, 'balance': user_data['balance'],
                                                    'settings': settings})
                     prompt_tokens = sum(
                         count_tokens_for_message(msg['content'], model) for msg in chat_history[:-1])
-                    completion_tokens = count_tokens_for_message(chat_history[:-1]['content'])
+                    completion_tokens = count_tokens_for_message(chat_history[-1]['content'], model)
                     await db.increase_total_chat_requests(user_id, prompt_tokens + completion_tokens)
                     QUEUED_USERS.remove(message.from_user.id)
                     return None
